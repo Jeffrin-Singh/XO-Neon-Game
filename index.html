@@ -164,6 +164,24 @@ button:hover, select:hover {
     </div>
 </div>
 
+<!-- CHAT -->
+<div id="chatBox" style="width:300px;margin-top:15px;">
+  <div id="messages" style="
+      height:120px;
+      overflow-y:auto;
+      background:#111;
+      padding:10px;
+      border-radius:10px;
+      margin-bottom:8px;
+      text-align:left;
+      font-size:14px;"></div>
+
+  <input id="chatInput" placeholder="Type message..."
+    style="width:70%;padding:6px;border-radius:10px;">
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+
 <audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
 <audio id="winSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
 
