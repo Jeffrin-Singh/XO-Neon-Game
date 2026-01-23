@@ -4,11 +4,9 @@
 let roomCode = null;
 let playerSymbol = null;
 let multiplayer = false;
-let playerNames = {
-    X: localStorage.getItem("playerXName") || "",
-    O: localStorage.getItem("playerOName") || ""
-};
 
+let myName = "";
+let playerNames = { X: "", O: "" };
 
 let scores = JSON.parse(localStorage.getItem("xoScores")) || {
     X: 0,
@@ -52,8 +50,27 @@ const wins = [
  ***********************/
 function updateScoreboard() {
     scoreDiv.innerText =
-        `X: ${scores.X} | O: ${scores.O} | Draws: ${scores.draw}`;
+        `${playerNames.X || "X"}: ${scores.X} | ${playerNames.O || "O"}: ${scores.O} | Draws: ${scores.draw}`;
     localStorage.setItem("xoScores", JSON.stringify(scores));
+}
+
+/***********************
+ * NAME HANDLING
+ ***********************/
+function saveMyName() {
+    const input = document.getElementById("myName").value.trim();
+    if (!input) return alert("Enter your name");
+
+    myName = input;
+    document.getElementById("nameModal").style.display = "none";
+
+    if (multiplayer && roomCode && playerSymbol) {
+        db.ref(`rooms/${roomCode}/names/${playerSymbol}`).set(myName);
+    }
+}
+
+function getPlayerName(symbol) {
+    return playerNames[symbol] || `Player ${symbol}`;
 }
 
 /***********************
@@ -66,42 +83,6 @@ function checkWinner(player) {
 function getWinningPattern(player) {
     return wins.find(p => p.every(i => board[i] === player));
 }
-
-function saveNames() {
-    const x = document.getElementById("nameX").value.trim() || "Player X";
-    const o = document.getElementById("nameO").value.trim() || "Player O";
-
-    playerNames.X = x;
-    playerNames.O = o;
-
-    localStorage.setItem("playerXName", x);
-    localStorage.setItem("playerOName", o);
-
-    // Update visible inputs
-    document.getElementById("playerX").value = x;
-    document.getElementById("playerO").value = o;
-
-    document.getElementById("nameModal").style.display = "none";
-    updateScoreboard();
-}
-
-function getPlayerName(symbol) {
-    return playerNames[symbol] || `Player ${symbol}`;
-}
-
-window.addEventListener("load", () => {
-    const modal = document.getElementById("nameModal");
-
-    if (!playerNames.X || !playerNames.O) {
-        modal.style.display = "flex";
-    } else {
-        modal.style.display = "none";
-        document.getElementById("playerX").value = playerNames.X;
-        document.getElementById("playerO").value = playerNames.O;
-        updateScoreboard();
-    }
-});
-
 
 function isDraw() {
     return !board.includes(" ");
@@ -185,78 +166,69 @@ function renderBoard(winPattern=null) {
 /***********************
  * POPUP
  ***********************/
-function showPopup(text, winnerSymbol) {
-    let displayText = text;
+function showPopup(_, winner) {
+    let text = "";
 
-    if (winnerSymbol === "X" || winnerSymbol === "O") {
-        const name = getPlayerName(winnerSymbol);
-        displayText = `🏆 ${name} (${winnerSymbol}) Wins!`;
+    if (winner === "X" || winner === "O") {
+        text = `🏆 ${getPlayerName(winner)} (${winner}) Wins!`;
+    } else {
+        text = "🤝 Match Draw!";
     }
 
-    if (winnerSymbol === "draw") {
-        displayText = "🤝 Match Draw!";
-    }
-
-    popupText.innerText = displayText;
+    popupText.innerText = text;
     popup.style.display = "flex";
     winSound.play();
     gameActive = false;
 
-    if (winnerSymbol && scores[winnerSymbol] !== undefined) {
-        scores[winnerSymbol]++;
+    if (scores[winner] !== undefined) {
+        scores[winner]++;
         updateScoreboard();
     }
 }
 
-
-
 /***********************
  * MULTIPLAYER + CHAT
  ***********************/
-function createRoom(){
-    roomCode=Math.random().toString(36).substr(2,6).toUpperCase();
-    playerSymbol="X";
-    multiplayer=true;
+function createRoom() {
+    roomCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+    playerSymbol = "X";
+    multiplayer = true;
 
-    db.ref("rooms/"+roomCode).set({
-        board:Array(9).fill(" "),
-        turn:"X"
+    db.ref("rooms/" + roomCode).set({
+        board: Array(9).fill(" "),
+        turn: "X",
+        names: {}
     });
 
-    alert("Room Code: "+roomCode);
+    alert("Room Code: " + roomCode);
+    document.getElementById("nameModal").style.display = "flex";
+
     listenRoom();
+    listenNames();
     listenChat();
 }
 
-function joinRoom(){
-    const c=document.getElementById("roomCode").value.trim();
-    if(!c)return alert("Enter room code");
-    roomCode=c;
-    playerSymbol="O";
-    multiplayer=true;
+function joinRoom() {
+    const code = document.getElementById("roomCode").value.trim();
+    if (!code) return alert("Enter room code");
+
+    roomCode = code;
+    playerSymbol = "O";
+    multiplayer = true;
+
+    document.getElementById("nameModal").style.display = "flex";
+
     listenRoom();
+    listenNames();
     listenChat();
 }
-function getPlayerName(symbol) {
-    if (symbol === "X") {
-        return document.getElementById("playerX")?.value || "Player X";
-    }
-    if (symbol === "O") {
-        return document.getElementById("playerO")?.value || "Player O";
-    }
-    return "";
-}
 
-function getPlayerName(symbol) {
-    if (symbol === "X") {
-        return document.getElementById("playerX")?.value || "Player X";
-    }
-    if (symbol === "O") {
-        return document.getElementById("playerO")?.value || "Player O";
-    }
-    return "";
+function listenNames() {
+    db.ref(`rooms/${roomCode}/names`).on("value", snap => {
+        playerNames = snap.val() || {};
+        updateScoreboard();
+    });
 }
-
 
 function listenRoom(){
     db.ref("rooms/" + roomCode).on("value", snap => {
@@ -269,25 +241,9 @@ function listenRoom(){
         const winX = getWinningPattern("X");
         const winO = getWinningPattern("O");
 
-    if (winX) {
-        const nameX = getPlayerName("X");
-        renderBoard(winX);
-        showPopup(`🏆 ${getPlayerName("X")} (X) Wins!`, "X");
-        return;
-    }
-
-    if (winO) {
-        const nameO = getPlayerName("O");
-        renderBoard(winO);
-        showPopup(`🏆 ${getPlayerName("X")} (O) Wins!`, "O");
-        return;
-    }
-
-    if (isDraw()) {
-        showPopup("🤝 Match Draw!", "draw");
-        return;
-    }
-
+        if (winX) return renderBoard(winX), showPopup("", "X");
+        if (winO) return renderBoard(winO), showPopup("", "O");
+        if (isDraw()) return showPopup("", "draw");
 
         gameActive = true;
         renderBoard();
@@ -299,21 +255,20 @@ function listenRoom(){
  * CHAT
  ***********************/
 function sendMessage(){
-    if(!multiplayer||!chatInput.value)return;
-    db.ref("chats/"+roomCode).push({
-        sender:playerSymbol,
-        text:chatInput.value,
-        time:Date.now()
-    });
-    chatInput.value="";
-    
-}
-chatInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") {
-        sendMessage();
-    }
-});
+    if(!multiplayer || !chatInput.value.trim()) return;
 
+    db.ref("chats/"+roomCode).push({
+        sender: myName || playerSymbol,
+        text: chatInput.value,
+        time: Date.now()
+    });
+
+    chatInput.value="";
+}
+
+chatInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") sendMessage();
+});
 
 function listenChat(){
     db.ref("chats/"+roomCode).limitToLast(50).on("child_added",snap=>{
@@ -329,10 +284,10 @@ function listenChat(){
  * HANDLE MOVE
  ***********************/
 function handleMove(i){
-    if(board[i]!==" "||!gameActive)return;
+    if(board[i]!==" " || !gameActive) return;
 
     if(multiplayer){
-        if(currentPlayer!==playerSymbol)return;
+        if(currentPlayer!==playerSymbol) return;
         clickSound.play();
         board[i]=playerSymbol;
         db.ref("rooms/"+roomCode).update({
@@ -346,21 +301,19 @@ function handleMove(i){
     board[i]=currentPlayer;
     renderBoard();
 
-    if(checkWinner(currentPlayer))
-        return showPopup(`${currentPlayer} Wins!`,currentPlayer);
-    if(isDraw())
-        return showPopup("Draw!","draw");
+    if(checkWinner(currentPlayer)) return showPopup("", currentPlayer);
+    if(isDraw()) return showPopup("", "draw");
 
     if(modeSelect.value==="ai"){
         gameActive=false;
         setTimeout(()=>{
-            let m=diffSelect.value==="easy"?aiEasy():
-                  diffSelect.value==="medium"?aiMedium():aiHard();
+            let m = diffSelect.value==="easy"?aiEasy():
+                    diffSelect.value==="medium"?aiMedium():aiHard();
             board[m]="O";
             renderBoard();
             gameActive=true;
-            if(checkWinner("O"))showPopup("AI Wins!","O");
-            else if(isDraw())showPopup("Draw!","draw");
+            if(checkWinner("O")) showPopup("", "O");
+            else if(isDraw()) showPopup("", "draw");
         },400);
     } else {
         currentPlayer=currentPlayer==="X"?"O":"X";
@@ -377,12 +330,14 @@ function restartGame(){
     popup.style.display="none";
     statusText.innerText="Turn: X";
 
-    if(multiplayer&&roomCode){
+    if(multiplayer && roomCode){
         db.ref("rooms/"+roomCode).set({
             board:board,
-            turn:"X"
+            turn:"X",
+            names: playerNames
         });
     }
+
     renderBoard();
 }
 

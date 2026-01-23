@@ -167,12 +167,13 @@ button:hover, select:hover {
     <input id="playerX" class="player-input" value="Player X" oninput="updateScoreboard()">
     <input id="playerO" class="player-input" value="Player O" oninput="updateScoreboard()">
 </div>
+
 <!-- NAME MODAL -->
 <div id="nameModal" style="
     position:fixed;
     inset:0;
     background:rgba(0,0,0,0.85);
-    display:flex;
+    display:none;
     align-items:center;
     justify-content:center;
     z-index:999;
@@ -181,9 +182,19 @@ button:hover, select:hover {
       background:#161b2e;
       padding:30px;
       border-radius:20px;
-      width:280px;
+      width:260px;
       border:2px solid #00ffe7;
   ">
+    <h3 style="color:#fff;margin-bottom:15px;">Enter Your Name</h3>
+
+    <input id="myName"
+      placeholder="Your name"
+      style="width:100%;padding:10px;border-radius:10px;margin-bottom:15px;">
+
+    <button onclick="saveMyName()" style="width:100%">Continue</button>
+  </div>
+</div>
+
     <h3 style="margin-bottom:15px;color:#fff;">Enter Player Names</h3>
 
     <input id="nameX" placeholder="Player X name"
