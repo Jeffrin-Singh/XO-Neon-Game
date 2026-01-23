@@ -4,6 +4,11 @@
 let roomCode = null;
 let playerSymbol = null;
 let multiplayer = false;
+let playerNames = {
+    X: localStorage.getItem("playerXName") || "",
+    O: localStorage.getItem("playerOName") || ""
+};
+
 
 let scores = JSON.parse(localStorage.getItem("xoScores")) || {
     X: 0,
@@ -61,6 +66,42 @@ function checkWinner(player) {
 function getWinningPattern(player) {
     return wins.find(p => p.every(i => board[i] === player));
 }
+
+function saveNames() {
+    const x = document.getElementById("nameX").value.trim() || "Player X";
+    const o = document.getElementById("nameO").value.trim() || "Player O";
+
+    playerNames.X = x;
+    playerNames.O = o;
+
+    localStorage.setItem("playerXName", x);
+    localStorage.setItem("playerOName", o);
+
+    // Update visible inputs
+    document.getElementById("playerX").value = x;
+    document.getElementById("playerO").value = o;
+
+    document.getElementById("nameModal").style.display = "none";
+    updateScoreboard();
+}
+
+function getPlayerName(symbol) {
+    return playerNames[symbol] || `Player ${symbol}`;
+}
+
+window.addEventListener("load", () => {
+    const modal = document.getElementById("nameModal");
+
+    if (!playerNames.X || !playerNames.O) {
+        modal.style.display = "flex";
+    } else {
+        modal.style.display = "none";
+        document.getElementById("playerX").value = playerNames.X;
+        document.getElementById("playerO").value = playerNames.O;
+        updateScoreboard();
+    }
+});
+
 
 function isDraw() {
     return !board.includes(" ");
@@ -231,14 +272,14 @@ function listenRoom(){
     if (winX) {
         const nameX = getPlayerName("X");
         renderBoard(winX);
-        showPopup(`🏆 ${nameX} (X) Wins!`, "X");
+        showPopup(`🏆 ${getPlayerName("X")} (X) Wins!`, "X");
         return;
     }
 
     if (winO) {
         const nameO = getPlayerName("O");
         renderBoard(winO);
-        showPopup(`🏆 ${nameO} (O) Wins!`, "O");
+        showPopup(`🏆 ${getPlayerName("X")} (O) Wins!`, "O");
         return;
     }
 
