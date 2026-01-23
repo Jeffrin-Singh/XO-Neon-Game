@@ -61,6 +61,85 @@ function isDraw() {
 }
 
 /***********************
+ * AI HELPERS
+ ***********************/
+function getEmptyCells() {
+    return board
+        .map((v, i) => v === " " ? i : null)
+        .filter(v => v !== null);
+}
+
+// EASY – random
+function aiEasy() {
+    const empty = getEmptyCells();
+    return empty[Math.floor(Math.random() * empty.length)];
+}
+
+// MEDIUM – win or block
+function aiMedium() {
+    for (let i of getEmptyCells()) {
+        board[i] = "O";
+        if (checkWinner("O")) {
+            board[i] = " ";
+            return i;
+        }
+        board[i] = " ";
+    }
+
+    for (let i of getEmptyCells()) {
+        board[i] = "X";
+        if (checkWinner("X")) {
+            board[i] = " ";
+            return i;
+        }
+        board[i] = " ";
+    }
+
+    return aiEasy();
+}
+
+// HARD – minimax
+function aiHard() {
+    let bestScore = -Infinity;
+    let move;
+
+    for (let i of getEmptyCells()) {
+        board[i] = "O";
+        let score = minimax(0, false);
+        board[i] = " ";
+        if (score > bestScore) {
+            bestScore = score;
+            move = i;
+        }
+    }
+    return move;
+}
+
+function minimax(depth, isMax) {
+    if (checkWinner("O")) return 10 - depth;
+    if (checkWinner("X")) return depth - 10;
+    if (isDraw()) return 0;
+
+    if (isMax) {
+        let best = -Infinity;
+        for (let i of getEmptyCells()) {
+            board[i] = "O";
+            best = Math.max(best, minimax(depth + 1, false));
+            board[i] = " ";
+        }
+        return best;
+    } else {
+        let best = Infinity;
+        for (let i of getEmptyCells()) {
+            board[i] = "X";
+            best = Math.min(best, minimax(depth + 1, true));
+            board[i] = " ";
+        }
+        return best;
+    }
+}
+
+/***********************
  * RENDER BOARD
  ***********************/
 function renderBoard() {
@@ -100,7 +179,6 @@ function createRoom() {
     roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     playerSymbol = "X";
     multiplayer = true;
-    gameActive = true;
 
     db.ref("rooms/" + roomCode).set({
         board: Array(9).fill(" "),
@@ -113,22 +191,18 @@ function createRoom() {
 
 function joinRoom() {
     const input = document.getElementById("roomCode").value.trim();
-    if (!input) {
-        alert("Enter room code");
-        return;
-    }
+    if (!input) return alert("Enter room code");
 
     roomCode = input;
     playerSymbol = "O";
     multiplayer = true;
-    gameActive = true;
 
     listenRoom();
 }
 
 function listenRoom() {
-    db.ref("rooms/" + roomCode).on("value", snapshot => {
-        const data = snapshot.val();
+    db.ref("rooms/" + roomCode).on("value", snap => {
+        const data = snap.val();
         if (!data) return;
 
         board = data.board;
@@ -146,23 +220,23 @@ function listenRoom() {
 function handleMove(index) {
     if (board[index] !== " " || !gameActive) return;
 
-    /* 🌐 MULTIPLAYER MODE */
+    /* 🌐 MULTIPLAYER */
     if (multiplayer) {
         if (currentPlayer !== playerSymbol) return;
 
         clickSound.play();
         board[index] = playerSymbol;
 
-        const nextTurn = playerSymbol === "X" ? "O" : "X";
+        const next = playerSymbol === "X" ? "O" : "X";
 
         db.ref("rooms/" + roomCode).update({
             board: board,
-            turn: nextTurn
+            turn: next
         });
         return;
     }
 
-    /* 👤 LOCAL / AI MODE */
+    /* 👤 LOCAL PLAYER */
     clickSound.play();
     board[index] = currentPlayer;
     renderBoard();
@@ -177,31 +251,28 @@ function handleMove(index) {
         return;
     }
 
-    if (modeSelect.value === "two") {
-        currentPlayer = currentPlayer === "X" ? "O" : "X";
-        statusText.innerText = `Turn: ${currentPlayer}`;
-    } else {
+    /* 🤖 AI MODE */
+    if (modeSelect.value === "ai") {
         statusText.innerText = "AI Thinking...";
         gameActive = false;
 
-        fetch("/move", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                board: board,
-                difficulty: diffSelect.value
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-            board = data.board;
+        setTimeout(() => {
+            let move;
+            if (diffSelect.value === "easy") move = aiEasy();
+            else if (diffSelect.value === "medium") move = aiMedium();
+            else move = aiHard();
+
+            board[move] = "O";
             renderBoard();
             gameActive = true;
             statusText.innerText = "Turn: X";
 
             if (checkWinner("O")) showPopup("AI Wins!", "O");
             else if (isDraw()) showPopup("Draw!", "draw");
-        });
+        }, 400);
+    } else {
+        currentPlayer = currentPlayer === "X" ? "O" : "X";
+        statusText.innerText = `Turn: ${currentPlayer}`;
     }
 }
 
@@ -212,7 +283,6 @@ function restartGame() {
     board = Array(9).fill(" ");
     currentPlayer = "X";
     gameActive = true;
-
     popup.style.display = "none";
     statusText.innerText = "Turn: X";
 
