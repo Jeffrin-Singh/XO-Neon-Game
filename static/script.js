@@ -144,13 +144,18 @@ function renderBoard(winPattern=null) {
 /***********************
  * POPUP
  ***********************/
-function showPopup(text,winner){
-    popupText.innerText=text;
-    popup.style.display="flex";
+function showPopup(text, winner){
+    popupText.innerText = text;
+    popup.style.display = "flex";
     winSound.play();
-    gameActive=false;
-    if(winner){scores[winner]++;updateScoreboard();}
+    gameActive = false;
+
+    if (winner && scores[winner] !== undefined) {
+        scores[winner]++;
+        updateScoreboard();
+    }
 }
+
 
 /***********************
  * MULTIPLAYER + CHAT
@@ -181,19 +186,36 @@ function joinRoom(){
 }
 
 function listenRoom(){
-    db.ref("rooms/"+roomCode).on("value",snap=>{
-        const d=snap.val(); if(!d)return;
-        board=d.board; currentPlayer=d.turn;
-        let winX=getWinningPattern("X");
-        let winO=getWinningPattern("O");
+    db.ref("rooms/" + roomCode).on("value", snap => {
+        const d = snap.val();
+        if (!d) return;
 
-        if(winX)return renderBoard(winX),showPopup("X Wins!","X");
-        if(winO)return renderBoard(winO),showPopup("O Wins!","O");
-        if(isDraw())return showPopup("Draw!","draw");
+        board = d.board;
+        currentPlayer = d.turn;
 
-        gameActive=true;
+        const winX = getWinningPattern("X");
+        const winO = getWinningPattern("O");
+
+        if (winX) {
+            renderBoard(winX);
+            showPopup("X Wins!", "X");
+            return;
+        }
+
+        if (winO) {
+            renderBoard(winO);
+            showPopup("O Wins!", "O");
+            return;
+        }
+
+        if (isDraw()) {
+            showPopup("Draw!", "draw");
+            return;
+        }
+
+        gameActive = true;
         renderBoard();
-        statusText.innerText=`Turn: ${currentPlayer}`;
+        statusText.innerText = `Turn: ${currentPlayer}`;
     });
 }
 
@@ -208,7 +230,14 @@ function sendMessage(){
         time:Date.now()
     });
     chatInput.value="";
+    
 }
+chatInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") {
+        sendMessage();
+    }
+});
+
 
 function listenChat(){
     db.ref("chats/"+roomCode).limitToLast(50).on("child_added",snap=>{
