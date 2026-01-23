@@ -119,43 +119,12 @@ button:hover, select:hover {
     border: 2px solid var(--primary);
 }
 
-/* 📱 MOBILE OPTIMIZATION */
+/* 📱 MOBILE */
 @media (max-width: 600px) {
-    h1 {
-        font-size: 2.2rem;
-    }
-
-    .controls {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .board {
-        gap: 8px;
-        padding: 10px;
-    }
-
-    .cell {
-        width: 65px;
-        height: 65px;
-        font-size: 2.2rem;
-    }
-
-    #chatBox {
-        width: 90% !important;
-    }
-
-    #messages {
-        height: 90px !important;
-        font-size: 13px;
-    }
-
-    .popup-box {
-        width: 85%;
-        padding: 25px;
-    }
+    h1 { font-size: 2.2rem; }
+    .cell { width: 65px; height: 65px; font-size: 2.2rem; }
+    .controls { flex-direction: column; }
 }
-
 </style>
 </head>
 
@@ -164,11 +133,13 @@ button:hover, select:hover {
 <h1>XO NEON</h1>
 
 <div class="scoreboard-container">
-    <input id="playerX" class="player-input" value="Player X" oninput="updateScoreboard()">
-    <input id="playerO" class="player-input" value="Player O" oninput="updateScoreboard()">
+    <input id="playerX" class="player-input" value="Player X" readonly>
+    <input id="playerO" class="player-input" value="Player O" readonly>
 </div>
 
-<!-- NAME MODAL -->
+<div id="scoreboard">X: 0 | O: 0 | Draws: 0</div>
+
+<!-- 🔤 NAME MODAL (SINGLE NAME) -->
 <div id="nameModal" style="
     position:fixed;
     inset:0;
@@ -186,29 +157,12 @@ button:hover, select:hover {
       border:2px solid #00ffe7;
   ">
     <h3 style="color:#fff;margin-bottom:15px;">Enter Your Name</h3>
-
     <input id="myName"
       placeholder="Your name"
       style="width:100%;padding:10px;border-radius:10px;margin-bottom:15px;">
-
     <button onclick="saveMyName()" style="width:100%">Continue</button>
   </div>
 </div>
-
-    <h3 style="margin-bottom:15px;color:#fff;">Enter Player Names</h3>
-
-    <input id="nameX" placeholder="Player X name"
-      style="width:100%;margin-bottom:10px;padding:8px;border-radius:10px;">
-
-    <input id="nameO" placeholder="Player O / AI"
-      style="width:100%;margin-bottom:15px;padding:8px;border-radius:10px;">
-
-    <button onclick="saveNames()" style="width:100%">Start Game</button>
-  </div>
-</div>
-
-
-<div id="scoreboard">X: 0 | O: 0 | Draws: 0</div>
 
 <div class="controls">
     <select id="mode">
@@ -222,13 +176,11 @@ button:hover, select:hover {
         <option value="hard" selected>Hard</option>
     </select>
 
-    <!-- MULTIPLAYER -->
     <input id="roomCode" placeholder="Room Code">
     <button onclick="createRoom()">Create Room</button>
     <button onclick="joinRoom()">Join Room</button>
 
     <button onclick="restartGame()">Restart</button>
-    <button onclick="resetScores()">Reset Scores</button>
 </div>
 
 <p id="status"><b>Turn: X</b></p>
@@ -242,7 +194,7 @@ button:hover, select:hover {
     </div>
 </div>
 
-<!-- CHAT -->
+<!-- 💬 CHAT -->
 <div id="chatBox" style="width:300px;margin-top:15px;">
   <div id="messages" style="
       height:120px;
@@ -259,34 +211,24 @@ button:hover, select:hover {
   <button onclick="sendMessage()">Send</button>
 </div>
 
-
 <audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
 <audio id="winSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
 
-<!-- ✅ FIREBASE v8 (CORRECT) -->
-
+<!-- FIREBASE v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-  
-  const firebaseConfig = {
-    apiKey: "AIzaSyB-JxjgqjFHnBKk3vWqHbmiiVdgmjMeKOA",
-    authDomain: "xo-multiplayer-4c47b.firebaseapp.com",
-    databaseURL: "https://xo-multiplayer-4c47b-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "xo-multiplayer-4c47b",
-    storageBucket: "xo-multiplayer-4c47b.firebasestorage.app",
-    messagingSenderId: "773726278190",
-    appId: "1:773726278190:web:3e7477a5d88e24aae345bf",
-    measurementId: "G-NXFRPY2SJZ"
-  };
-
-  // ✅ Firebase v8 initialization
-  firebase.initializeApp(firebaseConfig);
-
-  // ✅ Global database reference
-  const db = firebase.database();
-
+firebase.initializeApp({
+  apiKey: "AIzaSyB-JxjgqjFHnBKk3vWqHbmiiVdgmjMeKOA",
+  authDomain: "xo-multiplayer-4c47b.firebaseapp.com",
+  databaseURL: "https://xo-multiplayer-4c47b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "xo-multiplayer-4c47b",
+  storageBucket: "xo-multiplayer-4c47b.firebasestorage.app",
+  messagingSenderId: "773726278190",
+  appId: "1:773726278190:web:3e7477a5d88e24aae345bf"
+});
+const db = firebase.database();
 </script>
 
 <script src="./static/script.js"></script>
