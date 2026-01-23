@@ -144,17 +144,29 @@ function renderBoard(winPattern=null) {
 /***********************
  * POPUP
  ***********************/
-function showPopup(text, winner){
-    popupText.innerText = text;
+function showPopup(text, winnerSymbol) {
+    let displayText = text;
+
+    if (winnerSymbol === "X" || winnerSymbol === "O") {
+        const name = getPlayerName(winnerSymbol);
+        displayText = `🏆 ${name} (${winnerSymbol}) Wins!`;
+    }
+
+    if (winnerSymbol === "draw") {
+        displayText = "🤝 Match Draw!";
+    }
+
+    popupText.innerText = displayText;
     popup.style.display = "flex";
     winSound.play();
     gameActive = false;
 
-    if (winner && scores[winner] !== undefined) {
-        scores[winner]++;
+    if (winnerSymbol && scores[winnerSymbol] !== undefined) {
+        scores[winnerSymbol]++;
         updateScoreboard();
     }
 }
+
 
 
 /***********************
@@ -184,6 +196,26 @@ function joinRoom(){
     listenRoom();
     listenChat();
 }
+function getPlayerName(symbol) {
+    if (symbol === "X") {
+        return document.getElementById("playerX")?.value || "Player X";
+    }
+    if (symbol === "O") {
+        return document.getElementById("playerO")?.value || "Player O";
+    }
+    return "";
+}
+
+function getPlayerName(symbol) {
+    if (symbol === "X") {
+        return document.getElementById("playerX")?.value || "Player X";
+    }
+    if (symbol === "O") {
+        return document.getElementById("playerO")?.value || "Player O";
+    }
+    return "";
+}
+
 
 function listenRoom(){
     db.ref("rooms/" + roomCode).on("value", snap => {
@@ -196,22 +228,25 @@ function listenRoom(){
         const winX = getWinningPattern("X");
         const winO = getWinningPattern("O");
 
-        if (winX) {
-            renderBoard(winX);
-            showPopup("X Wins!", "X");
-            return;
-        }
+    if (winX) {
+        const nameX = getPlayerName("X");
+        renderBoard(winX);
+        showPopup(`🏆 ${nameX} (X) Wins!`, "X");
+        return;
+    }
 
-        if (winO) {
-            renderBoard(winO);
-            showPopup("O Wins!", "O");
-            return;
-        }
+    if (winO) {
+        const nameO = getPlayerName("O");
+        renderBoard(winO);
+        showPopup(`🏆 ${nameO} (O) Wins!`, "O");
+        return;
+    }
 
-        if (isDraw()) {
-            showPopup("Draw!", "draw");
-            return;
-        }
+    if (isDraw()) {
+        showPopup("🤝 Match Draw!", "draw");
+        return;
+    }
+
 
         gameActive = true;
         renderBoard();
