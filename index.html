@@ -77,6 +77,7 @@ input,select,button{
   justify-content:center;
   z-index:999;
   pointer-events:auto;
+  touch-action: manipulation;
 }
 
 .popup-box{
@@ -87,8 +88,10 @@ input,select,button{
   pointer-events:auto;
 }
 
-#playAgainBtn{
-  touch-action:manipulation;
+#playAgainBtn {
+  pointer-events: auto;
+  touch-action: manipulation;
+  z-index: 1000;
 }
 
 @media(max-width:600px){
@@ -151,7 +154,8 @@ input,select,button{
 <div id="popup">
   <div class="popup-box">
     <h2 id="popupText"></h2>
-    <button id="playAgainBtn">Play Again</button>
+    <button id="playAgainBtn" type="button">Play Again</button>
+
   </div>
 </div>
 

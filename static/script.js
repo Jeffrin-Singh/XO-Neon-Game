@@ -40,6 +40,17 @@ const popupText  = document.getElementById("popupText");
 const winSound   = document.getElementById("winSound");
 const playAgainBtn = document.getElementById("playAgainBtn");
 
+if (playAgainBtn) {
+  const handler = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    restartGame();
+  };
+
+  playAgainBtn.addEventListener("click", handler);
+  playAgainBtn.addEventListener("touchstart", handler, { passive: false });
+}
+
 /**********************************************************
  * SCOREBOARD
  **********************************************************/
