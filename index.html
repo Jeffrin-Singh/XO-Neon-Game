@@ -274,29 +274,5 @@ const db=firebase.database();
 </script>
 
 <script src="./static/script.js"></script>
-<script>
-  const devInfo = document.getElementById("developerInfo");
-  let devTimer;
-
-  function hideDevInfo() {
-    if (window.innerWidth <= 600) {
-      devInfo.style.opacity = "0";
-      devInfo.style.pointerEvents = "none";
-    }
-  }
-
-  function showDevInfo() {
-    if (window.innerWidth <= 600) {
-      devInfo.style.opacity = "1";
-      devInfo.style.pointerEvents = "auto";
-      clearTimeout(devTimer);
-      devTimer = setTimeout(hideDevInfo, 3000);
-    }
-  }
-
-  window.addEventListener("load", showDevInfo);
-  document.addEventListener("touchstart", showDevInfo);
-</script>
-
 </body>
 </html>
