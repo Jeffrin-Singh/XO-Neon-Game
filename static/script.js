@@ -107,13 +107,52 @@ function listenNames(){
 }
 
 function listenRoom(){
-  roomRef.on("value",s=>{
-    const d=s.val(); if(!d)return;
-    board=d.board; currentPlayer=d.turn;
+  roomRef.on("value", snap => {
+    const d = snap.val();
+    if (!d) return;
+
+    board = d.board;
+    currentPlayer = d.turn;
+
+    const winX = getWinningPattern("X");
+    const winO = getWinningPattern("O");
+
+    if (winX) {
+      renderBoard(winX);
+      showPopup("X");
+      return;
+    }
+
+    if (winO) {
+      renderBoard(winO);
+      showPopup("O");
+      return;
+    }
+
+    if (isDraw()) {
+      showPopup("draw");
+      return;
+    }
+
+    gameActive = true;
     renderBoard();
-    statusText.innerText=`Turn: ${currentPlayer}`;
+    statusText.innerText = `Turn: ${currentPlayer}`;
   });
 }
+
+
+function checkWinner(player) {
+  return wins.some(p => p.every(i => board[i] === player));
+}
+
+function getWinningPattern(player) {
+  return wins.find(p => p.every(i => board[i] === player));
+}
+
+function isDraw() {
+  return !board.includes(" ");
+}
+
 
 function handleMove(i){
   if(board[i]!==" "||!gameActive)return;
