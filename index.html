@@ -9,121 +9,84 @@
 
 <style>
 :root {
-    --primary: #00ffe7;
-    --secondary: #ff00de;
-    --bg-dark: #0b0f1a;
-    --bg-panel: #161b2e;
+  --primary:#00ffe7;
+  --secondary:#ff00de;
+  --bg:#0b0f1a;
+  --panel:#161b2e;
 }
 
-body {
-    background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
-    color: var(--primary);
-    font-family: 'Poppins', sans-serif;
-    text-align: center;
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+body{
+  background:radial-gradient(circle,#1b2735,#090a0f);
+  color:var(--primary);
+  font-family:Poppins,sans-serif;
+  text-align:center;
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
 }
 
-h1 {
-    font-size: 3.5rem;
-    margin-bottom: 10px;
-    color: #fff;
-    text-shadow: 0 0 10px #fff, 0 0 20px var(--primary);
+h1{color:#fff}
+
+.controls, .scoreboard-container{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
 }
 
-.scoreboard-container {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 10px;
+input,select,button{
+  padding:8px 14px;
+  border-radius:20px;
+  border:2px solid var(--primary);
+  background:rgba(0,0,0,.3);
+  color:var(--primary);
+  font-weight:600;
 }
 
-.player-input {
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid var(--primary);
-    color: #fff;
-    font-weight: bold;
-    width: 100px;
-    text-align: center;
+.board{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  padding:15px;
 }
 
-#scoreboard {
-    font-weight: 800;
-    margin-bottom: 15px;
+.cell{
+  width:80px;
+  height:80px;
+  background:#161b2e;
+  border-radius:12px;
+  font-size:3rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
 }
 
-.controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    margin-bottom: 15px;
+.cell.x{color:var(--primary)}
+.cell.o{color:var(--secondary)}
+
+#popup,#nameModal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
 }
 
-select, button, input {
-    padding: 8px 15px;
-    border-radius: 20px;
-    border: 2px solid var(--primary);
-    background: rgba(0,0,0,0.3);
-    color: var(--primary);
-    font-weight: 600;
-    font-family: 'Poppins', sans-serif;
+.popup-box{
+  background:var(--panel);
+  padding:30px;
+  border-radius:20px;
+  border:2px solid var(--primary);
 }
 
-button:hover, select:hover {
-    background: var(--primary);
-    color: var(--bg-dark);
-}
-
-.board {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 15px;
-    border-radius: 20px;
-    background: rgba(0,0,0,0.3);
-}
-
-.cell {
-    width: 80px;
-    height: 80px;
-    background: rgba(22,27,46,0.9);
-    border-radius: 12px;
-    font-size: 3rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-.cell.x { color: var(--primary); }
-.cell.o { color: var(--secondary); }
-
-#popup {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
-
-.popup-box {
-    background: var(--bg-panel);
-    padding: 40px;
-    border-radius: 20px;
-    border: 2px solid var(--primary);
-}
-
-/* 📱 MOBILE */
-@media (max-width: 600px) {
-    h1 { font-size: 2.2rem; }
-    .cell { width: 65px; height: 65px; font-size: 2.2rem; }
-    .controls { flex-direction: column; }
+@media(max-width:600px){
+  .cell{width:65px;height:65px;font-size:2.2rem}
 }
 </style>
 </head>
@@ -133,115 +96,76 @@ button:hover, select:hover {
 <h1>XO NEON</h1>
 
 <div class="scoreboard-container">
-    <input id="playerX" class="player-input" value="Player X" readonly>
-    <input id="playerO" class="player-input" value="Player O" readonly>
+  <input id="playerX" value="Player X" readonly>
+  <input id="playerO" value="Player O" readonly>
 </div>
 
 <div id="scoreboard">X: 0 | O: 0 | Draws: 0</div>
-<p id="roomStatus" style="display:none;color:#fff;margin-top:8px;"></p>
 
-
-
-<!-- 🔤 NAME MODAL (SINGLE NAME) -->
-<div id="nameModal" style="
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.85);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:999;
-">
-  <div style="
-      background:#161b2e;
-      padding:30px;
-      border-radius:20px;
-      width:260px;
-      border:2px solid #00ffe7;
-  ">
-    <h3 style="color:#fff;margin-bottom:15px;">Enter Your Name</h3>
-    <input id="myName"
-      placeholder="Your name"
-      style="width:100%;padding:10px;border-radius:10px;margin-bottom:15px;">
-    <button onclick="saveMyName()" style="width:100%">Continue</button>
-  </div>
-</div>
+<p id="roomStatus" style="display:none;color:#fff;"></p>
 
 <div class="controls">
-    <select id="mode">
-        <option value="ai">Player vs AI</option>
-        <option value="two">2 Players</option>
-    </select>
+  <select id="mode">
+    <option value="ai">Player vs AI</option>
+    <option value="two">2 Players</option>
+  </select>
 
-    <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard" selected>Hard</option>
-    </select>
+  <select id="difficulty">
+    <option>easy</option>
+    <option>medium</option>
+    <option selected>hard</option>
+  </select>
 
-    <input id="roomCode" placeholder="Room Code">
-    <button onclick="createRoom()">Create Room</button>
-    <button onclick="joinRoom()">Join Room</button>
-    
-
-    <button id="exitRoomBtn"
-        onclick="exitRoom()"
-        style="display:none;margin-top:5px;">
-        Exit Room
-    </button>
-
-    <button onclick="restartGame()">Restart</button>
+  <input id="roomCode" placeholder="Room Code">
+  <button onclick="createRoom()">Create</button>
+  <button onclick="joinRoom()">Join</button>
+  <button id="exitRoomBtn" onclick="exitRoom()" style="display:none">Exit</button>
 </div>
 
-<p id="status"><b>Turn: X</b></p>
+<p id="status">Turn: X</p>
 
 <div class="board" id="board"></div>
 
-<div id="popup">
-    <div class="popup-box">
-        <h2 id="popupText"></h2>
-        <button onclick="restartGame()">Play Again</button>
-    </div>
+<!-- CHAT -->
+<div id="chatBox" style="width:300px">
+  <div id="messages" style="height:120px;overflow-y:auto;background:#111;padding:10px;border-radius:10px"></div>
+  <input id="chatInput" placeholder="Message">
+  <button onclick="sendMessage()">Send</button>
 </div>
 
-<!-- 💬 CHAT -->
-<div id="chatBox" style="width:300px;margin-top:15px;">
-  <div id="messages" style="
-      height:120px;
-      overflow-y:auto;
-      background:#111;
-      padding:10px;
-      border-radius:10px;
-      margin-bottom:8px;
-      text-align:left;
-      font-size:14px;"></div>
+<!-- NAME MODAL -->
+<div id="nameModal">
+  <div class="popup-box">
+    <h3 style="color:#fff">Enter your name</h3>
+    <input id="myName" placeholder="Your name">
+    <button onclick="saveMyName()">Continue</button>
+  </div>
+</div>
 
-  <input id="chatInput" placeholder="Type message..."
-    style="width:70%;padding:6px;border-radius:10px;">
-  <button onclick="sendMessage()">Send</button>
+<!-- WIN POPUP -->
+<div id="popup">
+  <div class="popup-box">
+    <h2 id="popupText"></h2>
+    <button onclick="restartGame()">Play Again</button>
+  </div>
 </div>
 
 <audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
 <audio id="winSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
 
-<!-- FIREBASE v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSyB-JxjgqjFHnBKk3vWqHbmiiVdgmjMeKOA",
-  authDomain: "xo-multiplayer-4c47b.firebaseapp.com",
-  databaseURL: "https://xo-multiplayer-4c47b-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "xo-multiplayer-4c47b",
-  storageBucket: "xo-multiplayer-4c47b.firebasestorage.app",
-  messagingSenderId: "773726278190",
-  appId: "1:773726278190:web:3e7477a5d88e24aae345bf"
+  apiKey:"AIzaSyB-JxjgqjFHnBKk3vWqHbmiiVdgmjMeKOA",
+  authDomain:"xo-multiplayer-4c47b.firebaseapp.com",
+  databaseURL:"https://xo-multiplayer-4c47b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"xo-multiplayer-4c47b"
 });
-const db = firebase.database();
+const db=firebase.database();
 </script>
 
 <script src="./static/script.js"></script>
-
 </body>
 </html>
