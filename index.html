@@ -1,238 +1,330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XO Neon Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XO Neon Multiplayer</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
-<style>
-:root{
-  --primary:#00ffe7;
-  --secondary:#ff00de;
-  --bg:#0b0f1a;
-  --panel:#161b2e;
-}
+    <style>
+        :root {
+            --primary: #00ffe7;
+            --secondary: #ff00de;
+            --bg: #0b0f1a;
+            --glass: rgba(22, 27, 46, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glow-primary: 0 0 15px rgba(0, 255, 231, 0.5);
+            --glow-secondary: 0 0 15px rgba(255, 0, 222, 0.5);
+        }
 
-body{
-  background:radial-gradient(circle,#1b2735,#090a0f);
-  color:var(--primary);
-  font-family:Poppins,sans-serif;
-  margin:0;
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-}
+        body {
+            background: radial-gradient(circle at center, #1b2735 0%, #05070a 100%);
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
 
-h1{color:#fff}
+        /* Main Game Card */
+        .main-card {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+            width: 100%;
+            max-width: 380px;
+            position: relative;
+            z-index: 10;
+        }
 
-.controls,.scoreboard-container{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  justify-content:center;
-}
+        h1 {
+            font-weight: 800;
+            letter-spacing: 4px;
+            margin: 0 0 15px 0;
+            text-align: center;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 5px rgba(0, 255, 231, 0.3));
+        }
 
-input,button{
-  padding:8px 14px;
-  border-radius:20px;
-  border:2px solid var(--primary);
-  background:rgba(0,0,0,.3);
-  color:var(--primary);
-  font-weight:600;
-}
+        /* Scoreboard */
+        .scoreboard-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
 
-.board{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  padding:15px;
-}
+        .player-badge {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            padding: 8px;
+            border-radius: 12px;
+            font-size: 13px;
+            text-align: center;
+            transition: 0.3s;
+        }
 
-.cell{
-  width:80px;
-  height:80px;
-  background:#161b2e;
-  border-radius:12px;
-  font-size:3rem;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-}
+        .player-badge.active {
+            border-color: var(--primary);
+            box-shadow: var(--glow-primary);
+        }
 
-.cell.x{color:var(--primary)}
-.cell.o{color:var(--secondary)}
+        #status {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+        }
 
-#popup,#nameModal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.85);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:999;
-  pointer-events:auto;
-}
+        /* The Grid */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
 
-.popup-box{
-  background:var(--panel);
-  padding:30px;
-  border-radius:20px;
-  border:2px solid var(--primary);
-  pointer-events:auto;
-}
+        .cell {
+            aspect-ratio: 1/1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            font-size: 2.5rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
 
-#playAgainBtn{
-  pointer-events:auto;
-  touch-action:manipulation;
-}
-#developerInfo {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  background: rgba(22,27,46,0.9);
-  border: 1.5px solid var(--primary);
-  border-radius: 14px;
-  padding: 8px 14px;
-  text-align: right;
-  z-index: 1000;
-  box-shadow: 0 0 15px rgba(0,255,231,0.3);
-}
+        .cell:hover:not(:empty) { cursor: default; }
+        .cell:hover:empty {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.02);
+        }
 
-#developerInfo .dev-name {
-  color: #fff;
-  font-weight: 600;
-  font-size: 14px;
-}
+        .cell.x { color: var(--primary); text-shadow: var(--glow-primary); }
+        .cell.o { color: var(--secondary); text-shadow: var(--glow-secondary); }
 
-#developerInfo .dev-role {
-  color: var(--primary);
-  font-size: 12px;
-}
+        /* Winning Animation */
+        .cell.winner {
+            background: rgba(0, 255, 231, 0.2);
+            animation: winPulse 1s infinite alternate;
+        }
 
-/* 📱 Mobile adjustment */
-@media (max-width: 600px) {
-  #developerInfo {
-    top: 8px;
-    right: 8px;
-    padding: 6px 10px;
-  }
+        @keyframes winPulse {
+            from { transform: scale(1); box-shadow: 0 0 0px var(--primary); }
+            to { transform: scale(1.05); box-shadow: 0 0 15px var(--primary); }
+        }
 
-  #developerInfo .dev-name {
-    font-size: 12px;
-  }
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
 
-  #developerInfo .dev-role {
-    font-size: 11px;
-  }
-}
+        input {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--glass-border);
+            padding: 10px;
+            border-radius: 12px;
+            color: #fff;
+            outline: none;
+            font-family: inherit;
+        }
 
+        input:focus { border-color: var(--primary); }
 
-@media(max-width:600px){
-  .cell{width:65px;height:65px;font-size:2.2rem}
-}
-</style>
+        button {
+            background: linear-gradient(135deg, var(--primary), #0081ff);
+            color: #0b0f1a;
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 231, 0.4);
+        }
+
+        button.secondary { background: var(--secondary); color: white; }
+
+        /* Chat Section */
+        #chatBox {
+            margin-top: 20px;
+            border-top: 1px solid var(--glass-border);
+            padding-top: 15px;
+        }
+
+        #messages {
+            height: 70px;
+            overflow-y: auto;
+            font-size: 12px;
+            text-align: left;
+            margin-bottom: 10px;
+            padding-right: 5px;
+        }
+
+        /* Modals */
+        #popup, #nameModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .popup-box {
+            background: var(--bg);
+            padding: 30px;
+            border-radius: 24px;
+            border: 2px solid var(--primary);
+            text-align: center;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        /* Developer Pill */
+        #developerInfo {
+            position: fixed;
+            bottom: 20px;
+            background: var(--glass);
+            border: 1px solid var(--primary);
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-size: 11px;
+            z-index: 100;
+        }
+
+        @media (max-width: 400px) {
+            .main-card { padding: 1.2rem; }
+            .cell { font-size: 2rem; }
+        }
+    </style>
 </head>
 
 <body>
 
-<h1>XO NEON</h1>
+    <div class="main-card">
+        <h1>XO NEON</h1>
 
-<div class="scoreboard-container">
-  <input id="playerX" value="Player X" readonly>
-  <input id="playerO" value="Player O" readonly>
-</div>
+        <div class="scoreboard-container">
+            <div class="player-badge" id="pX_badge">Player X</div>
+            <div class="player-badge" id="pO_badge">Player O</div>
+        </div>
 
-<div id="scoreboard">Player X vs Player O</div>
-<p id="roomStatus" style="display:none;color:#fff;"></p>
+        <div id="status">Waiting for game...</div>
 
-<div class="controls">
-  <input id="roomCode" placeholder="Room Code">
-  <button onclick="createRoom()">Create Room</button>
-  <button onclick="joinRoom()">Join Room</button>
-  <button id="exitRoomBtn" onclick="exitRoom()" style="display:none">Exit</button>
-</div>
+        <div class="board" id="board">
+            <div class="cell" onclick="handleMove(0)"></div>
+            <div class="cell" onclick="handleMove(1)"></div>
+            <div class="cell" onclick="handleMove(2)"></div>
+            <div class="cell" onclick="handleMove(3)"></div>
+            <div class="cell" onclick="handleMove(4)"></div>
+            <div class="cell" onclick="handleMove(5)"></div>
+            <div class="cell" onclick="handleMove(6)"></div>
+            <div class="cell" onclick="handleMove(7)"></div>
+            <div class="cell" onclick="handleMove(8)"></div>
+        </div>
 
-<p id="status">Turn: X</p>
+        <div class="controls">
+            <input id="roomCode" placeholder="Room Code" style="grid-column: span 2; margin-bottom: 5px;">
+            <button onclick="createRoom()">Create</button>
+            <button onclick="joinRoom()" class="secondary">Join</button>
+            <button id="exitRoomBtn" onclick="location.reload()" style="display:none; grid-column: span 2; margin-top:5px; background: #ff4757; color: white;">Exit Game</button>
+        </div>
 
-<div class="board" id="board"></div>
+        <div id="chatBox">
+            <div id="messages"></div>
+            <div style="display: flex; gap: 8px;">
+                <input id="chatInput" placeholder="Chat..." style="flex:1">
+                <button onclick="sendMessage()" style="padding: 0 15px;">></button>
+            </div>
+        </div>
+    </div>
 
-<!-- 👤 MY PROFILE BADGE -->
-<!-- <div id="myProfile" style="
-  position:fixed;
-  top:12px;
-  right:12px;
-  background:#161b2e;
-  border:2px solid #00ffe7;
-  border-radius:14px;
-  padding:8px 14px;
-  color:#fff;
-  font-size:14px;
-  display:none;
-  z-index:1001;
-  box-shadow:0 0 10px rgba(0,255,231,0.4);
-">
-  <div id="myProfileName">👤 You</div>
-  <div id="myProfileStatus" style="font-size:12px;color:#00ffe7;">
-    Offline
-  </div>
-</div> -->
+    <div id="developerInfo">
+        👨‍💻 Developed by <a href="#" style="color:var(--primary); text-decoration:none; font-weight:700;">Jeffrin Singh</a>
+    </div>
 
-<!-- 👤 DEVELOPER INFO -->
-<div id="developerInfo">
-  <div class="dev-name">👨‍💻 Developed by Jeffrin Singh</div>
-  <div class="dev-role">Full-Stack Developer</div>
-</div>
+    <div id="nameModal" style="display: flex;">
+        <div class="popup-box">
+            <h3 style="margin-top:0">Enter Name</h3>
+            <input id="myName" placeholder="Your Name" style="width: 80%; margin-bottom: 15px;">
+            <button onclick="saveName()" style="width: 90%;">Enter Arena</button>
+        </div>
+    </div>
 
+    <div id="popup">
+        <div class="popup-box">
+            <h2 id="popupText">Winner!</h2>
+            <button onclick="location.reload()" style="width: 100%;">Play Again</button>
+        </div>
+    </div>
 
+    <audio id="winSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
 
-<!-- CHAT -->
-<div id="chatBox" style="width:300px">
-  <div id="messages"
-       style="height:120px;overflow-y:auto;background:#111;
-              padding:10px;border-radius:10px"></div>
-  <input id="chatInput" placeholder="Message">
-  <button onclick="sendMessage()">Send</button>
-</div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-<!-- NAME MODAL -->
-<div id="nameModal">
-  <div class="popup-box">
-    <h3 style="color:#fff">Enter your name</h3>
-    <input id="myName" placeholder="Your name">
-    <button onclick="saveMyName()">Continue</button>
-  </div>
-</div>
+    <script>
+        // CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-JxjgqjFHnBKk3vWqHbmiiVdgmjMeKOA",
+            authDomain: "xo-multiplayer-4c47b.firebaseapp.com",
+            databaseURL: "https://xo-multiplayer-4c47b-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "xo-multiplayer-4c47b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-<!-- WIN POPUP -->
-<div id="popup">
-  <div class="popup-box">
-    <h2 id="popupText"></h2>
-    <button id="playAgainBtn" type="button">Play Again</button>
-  </div>
-</div>
+        // GAME STATE
+        let myName = "";
+        let currentRoom = null;
+        let mySymbol = null; // 'X' or 'O'
+        let boardState = Array(9).fill("");
 
-<audio id="winSound"
-       src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
+        // UI ELEMENTS
+        const cells = document.querySelectorAll('.cell');
+        const statusTxt = document.getElementById('status');
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+        function saveName() {
+            const input = document.getElementById('myName').value;
+            if(input) {
+                myName = input;
+                document.getElementById('nameModal').style.display = 'none';
+            }
+        }
 
-<script>
-firebase.initializeApp({
-  apiKey:"AIzaSyB-JxjgqjFHnBKk3vWqHbmiiVdgmjMeKOA",
-  authDomain:"xo-multiplayer-4c47b.firebaseapp.com",
-  databaseURL:"https://xo-multiplayer-4c47b-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:"xo-multiplayer-4c47b"
-});
-const db=firebase.database();
-</script>
-
-<script src="./static/script.js"></script>
+        // Add your logic to handle rooms, moves, and Firebase listeners below 
+        // linked to your script.js logic.
+        
+        // Note: Ensure your handleMove(index) function checks if it's the 
+        // player's turn before updating Firebase!
+    </script>
 </body>
 </html>
