@@ -198,10 +198,9 @@ function createRoom() {
     playerSymbol = "X";
     multiplayer = true;
 
-    // Firebase refs (IMPORTANT)
     roomRef = db.ref("rooms/" + roomCode);
-    namesRef = db.ref("rooms/" + roomCode + "/names");
-    chatRef = db.ref("chats/" + roomCode);
+    namesRef = db.ref(`rooms/${roomCode}/names`);
+    chatRef  = db.ref("chats/" + roomCode);
 
     roomRef.set({
         board: Array(9).fill(" "),
@@ -209,22 +208,14 @@ function createRoom() {
         names: {}
     });
 
-    // UI updates
     alert("Room Code: " + roomCode);
-
-    document.getElementById("roomStatus").style.display = "block";
-    document.getElementById("roomStatus").innerText =
-        `🟢 In Room: ${roomCode} (You are X)`;
-
-    document.getElementById("exitRoomBtn").style.display = "inline-block";
     document.getElementById("nameModal").style.display = "flex";
+    document.getElementById("exitRoomBtn").style.display = "inline-block";
 
-    // Start listeners
     listenRoom();
     listenNames();
     listenChat();
 }
-
 
 function joinRoom() {
     const code = document.getElementById("roomCode").value.trim();
@@ -234,23 +225,50 @@ function joinRoom() {
     playerSymbol = "O";
     multiplayer = true;
 
-    // Firebase refs
     roomRef = db.ref("rooms/" + roomCode);
-    namesRef = db.ref("rooms/" + roomCode + "/names");
-    chatRef = db.ref("chats/" + roomCode);
+    namesRef = db.ref(`rooms/${roomCode}/names`);
+    chatRef  = db.ref("chats/" + roomCode);
 
-    // UI updates
-    document.getElementById("roomStatus").style.display = "block";
-    document.getElementById("roomStatus").innerText =
-        `🟢 In Room: ${roomCode} (You are O)`;
-
-    document.getElementById("exitRoomBtn").style.display = "inline-block";
     document.getElementById("nameModal").style.display = "flex";
+    document.getElementById("exitRoomBtn").style.display = "inline-block";
 
-    // Start listeners
     listenRoom();
     listenNames();
     listenChat();
+}
+
+function exitRoom() {
+    if (!multiplayer || !roomCode) return;
+
+    // 🔌 Detach Firebase listeners
+    if (roomRef) roomRef.off();
+    if (namesRef) namesRef.off();
+    if (chatRef) chatRef.off();
+
+    // 🧹 Remove my name from room
+    if (playerSymbol) {
+        db.ref(`rooms/${roomCode}/names/${playerSymbol}`).remove();
+    }
+
+    // 🔄 Reset local state
+    roomCode = null;
+    playerSymbol = null;
+    multiplayer = false;
+    playerNames = { X: "", O: "" };
+
+    board = Array(9).fill(" ");
+    currentPlayer = "X";
+    gameActive = true;
+
+    // 🧼 Clear UI
+    messagesDiv.innerHTML = "";
+    popup.style.display = "none";
+    statusText.innerText = "Not in a room";
+    document.getElementById("exitRoomBtn").style.display = "none";
+
+    renderBoard();
+
+    alert("You exited the room");
 }
 
 
