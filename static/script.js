@@ -12,7 +12,7 @@ let board = Array(9).fill(" ");
 let currentPlayer = "X";
 let gameActive = true;
 
-// Firebase refs (only used in multiplayer)
+// Firebase refs (multiplayer only)
 let roomRef = null;
 let namesRef = null;
 let chatRef  = null;
@@ -38,14 +38,14 @@ const roomStatus = document.getElementById("roomStatus");
 const popup      = document.getElementById("popup");
 const popupText  = document.getElementById("popupText");
 const winSound   = document.getElementById("winSound");
-const modeSelect = document.getElementById("mode");
+const playAgainBtn = document.getElementById("playAgainBtn");
 
 /**********************************************************
  * SCOREBOARD
  **********************************************************/
 function updateScoreboard() {
   scoreDiv.innerText =
-    `${playerNames.X || "X"} vs ${playerNames.O || "O"}`;
+    `${playerNames.X || "Player X"} vs ${playerNames.O || "Player O"}`;
 }
 
 /**********************************************************
@@ -93,7 +93,7 @@ function getPlayerName(symbol) {
 }
 
 /**********************************************************
- * POPUP (WIN / DRAW)
+ * POPUP
  **********************************************************/
 function showPopup(result) {
   gameActive = false;
@@ -104,7 +104,7 @@ function showPopup(result) {
       : `🏆 ${getPlayerName(result)} (${result}) Wins!`;
 
   popup.style.display = "flex";
-  winSound.play();
+  winSound?.play();
 }
 
 /**********************************************************
@@ -118,7 +118,7 @@ function saveMyName() {
   document.getElementById("nameModal").style.display = "none";
 
   if (multiplayer && roomRef && playerSymbol) {
-    db.ref(`rooms/${roomCode}/names/${playerSymbol}`).set(myName);
+    namesRef.child(playerSymbol).set(myName);
   }
 }
 
@@ -176,23 +176,14 @@ function joinRoom() {
 function exitRoom() {
   if (!multiplayer || !roomCode) return;
 
-  // Detach listeners
   roomRef?.off();
   namesRef?.off();
   chatRef?.off();
 
-  // Remove my name
-  db.ref(`rooms/${roomCode}/names/${playerSymbol}`).remove();
+  if (playerSymbol) {
+    namesRef.child(playerSymbol).remove();
+  }
 
-  // Auto-delete empty room
-  db.ref(`rooms/${roomCode}/names`).once("value", snap => {
-    if (!snap.exists()) {
-      db.ref(`rooms/${roomCode}`).remove();
-      db.ref(`chats/${roomCode}`).remove();
-    }
-  });
-
-  // Reset local state
   multiplayer = false;
   roomCode = null;
   playerSymbol = null;
@@ -202,7 +193,6 @@ function exitRoom() {
   currentPlayer = "X";
   gameActive = true;
 
-  // Reset UI
   messagesDiv.innerHTML = "";
   popup.style.display = "none";
   roomStatus.style.display = "none";
@@ -210,6 +200,7 @@ function exitRoom() {
   statusText.innerText = "Not in a room";
 
   renderBoard();
+  updateScoreboard();
 }
 
 /**********************************************************
@@ -268,7 +259,7 @@ function listenRoom() {
  * CHAT
  **********************************************************/
 function sendMessage() {
-  if (!chatInput.value.trim()) return;
+  if (!chatRef || !chatInput.value.trim()) return;
 
   chatRef.push({
     sender: myName || playerSymbol,
@@ -280,10 +271,11 @@ function sendMessage() {
 }
 
 function listenChat() {
+  if (!chatRef) return;
+
   chatRef.limitToLast(50).on("child_added", snap => {
     const m = snap.val();
-    messagesDiv.innerHTML +=
-      `<div><b>${m.sender}:</b> ${m.text}</div>`;
+    messagesDiv.innerHTML += `<div><b>${m.sender}:</b> ${m.text}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   });
 }
@@ -294,7 +286,6 @@ function listenChat() {
 function handleMove(index) {
   if (!gameActive || board[index] !== " ") return;
 
-  // Multiplayer
   if (multiplayer) {
     if (currentPlayer !== playerSymbol) return;
 
@@ -306,7 +297,6 @@ function handleMove(index) {
     return;
   }
 
-  // Local / AI
   board[index] = currentPlayer;
   renderBoard();
 
@@ -335,6 +325,12 @@ function restartGame() {
     renderBoard();
   }
 }
+
+playAgainBtn?.addEventListener("click", restartGame);
+playAgainBtn?.addEventListener("touchstart", e => {
+  e.preventDefault();
+  restartGame();
+}, { passive:false });
 
 /**********************************************************
  * INIT
