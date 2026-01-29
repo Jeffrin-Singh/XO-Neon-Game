@@ -85,6 +85,15 @@ input,select,button{
   border:2px solid var(--primary);
 }
 
+#popup {
+  pointer-events: auto;
+}
+
+.popup-box {
+  pointer-events: auto;
+}
+
+
 @media(max-width:600px){
   .cell{width:65px;height:65px;font-size:2.2rem}
 }
@@ -146,7 +155,8 @@ input,select,button{
 <div id="popup">
   <div class="popup-box">
     <h2 id="popupText"></h2>
-    <button onclick="restartGame()">Play Again</button>
+    <button id="playAgainBtn">Play Again</button>
+
   </div>
 </div>
 

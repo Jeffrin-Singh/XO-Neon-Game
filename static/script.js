@@ -1,63 +1,139 @@
-let roomCode=null, playerSymbol=null, multiplayer=false;
-let myName="";
-let playerNames={X:"",O:""};
-let board=Array(9).fill(" ");
-let currentPlayer="X";
-let gameActive=true;
+/**********************************************************
+ * GLOBAL STATE
+ **********************************************************/
+let roomCode = null;
+let playerSymbol = null;      // "X" or "O" (multiplayer only)
+let multiplayer = false;
 
-let roomRef=null, namesRef=null, chatRef=null;
+let myName = "";
+let playerNames = { X: "", O: "" };
 
-const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let board = Array(9).fill(" ");
+let currentPlayer = "X";
+let gameActive = true;
 
-const boardDiv=document.getElementById("board");
-const statusText=document.getElementById("status");
-const scoreDiv=document.getElementById("scoreboard");
-const messagesDiv=document.getElementById("messages");
-const chatInput=document.getElementById("chatInput");
-const roomStatus=document.getElementById("roomStatus");
-const popup=document.getElementById("popup");
-const popupText=document.getElementById("popupText");
-const winSound=document.getElementById("winSound");
+// Firebase refs (only used in multiplayer)
+let roomRef = null;
+let namesRef = null;
+let chatRef  = null;
 
-function updateScoreboard(){
-  scoreDiv.innerText=`${playerNames.X||"X"} | ${playerNames.O||"O"}`;
+/**********************************************************
+ * CONSTANTS
+ **********************************************************/
+const wins = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+/**********************************************************
+ * DOM ELEMENTS
+ **********************************************************/
+const boardDiv   = document.getElementById("board");
+const statusText = document.getElementById("status");
+const scoreDiv   = document.getElementById("scoreboard");
+const messagesDiv= document.getElementById("messages");
+const chatInput  = document.getElementById("chatInput");
+const roomStatus = document.getElementById("roomStatus");
+const popup      = document.getElementById("popup");
+const popupText  = document.getElementById("popupText");
+const winSound   = document.getElementById("winSound");
+const modeSelect = document.getElementById("mode");
+
+/**********************************************************
+ * SCOREBOARD
+ **********************************************************/
+function updateScoreboard() {
+  scoreDiv.innerText =
+    `${playerNames.X || "X"} vs ${playerNames.O || "O"}`;
 }
 
-function renderBoard(){
-  boardDiv.innerHTML="";
-  board.forEach((v,i)=>{
-    const c=document.createElement("div");
-    c.className="cell "+(v==="X"?"x":v==="O"?"o":"");
-    c.innerText=v;
-    c.onclick=()=>handleMove(i);
-    boardDiv.appendChild(c);
+/**********************************************************
+ * RENDER BOARD
+ **********************************************************/
+function renderBoard(winPattern = null) {
+  boardDiv.innerHTML = "";
+
+  board.forEach((value, index) => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+
+    if (value === "X") cell.classList.add("x");
+    if (value === "O") cell.classList.add("o");
+
+    if (winPattern && winPattern.includes(index)) {
+      cell.style.boxShadow = "0 0 20px #00ffe7";
+      cell.style.transform = "scale(1.1)";
+    }
+
+    cell.innerText = value;
+    cell.onclick = () => handleMove(index);
+
+    boardDiv.appendChild(cell);
   });
 }
 
-function showPopup(winner){
-  popupText.innerText=winner==="draw"?"🤝 Draw":`🏆 ${playerNames[winner]} Wins!`;
-  popup.style.display="flex";
+/**********************************************************
+ * GAME HELPERS
+ **********************************************************/
+function checkWinner(player) {
+  return wins.some(p => p.every(i => board[i] === player));
+}
+
+function getWinningPattern(player) {
+  return wins.find(p => p.every(i => board[i] === player));
+}
+
+function isDraw() {
+  return !board.includes(" ");
+}
+
+function getPlayerName(symbol) {
+  return playerNames[symbol] || `Player ${symbol}`;
+}
+
+/**********************************************************
+ * POPUP (WIN / DRAW)
+ **********************************************************/
+function showPopup(result) {
+  gameActive = false;
+
+  popupText.innerText =
+    result === "draw"
+      ? "🤝 Match Draw!"
+      : `🏆 ${getPlayerName(result)} (${result}) Wins!`;
+
+  popup.style.display = "flex";
   winSound.play();
-  gameActive=false;
 }
 
-function saveMyName(){
-  myName=document.getElementById("myName").value.trim();
-  if(!myName)return;
-  document.getElementById("nameModal").style.display="none";
-  db.ref(`rooms/${roomCode}/names/${playerSymbol}`).set(myName);
+/**********************************************************
+ * NAME HANDLING
+ **********************************************************/
+function saveMyName() {
+  const input = document.getElementById("myName").value.trim();
+  if (!input) return alert("Enter your name");
+
+  myName = input;
+  document.getElementById("nameModal").style.display = "none";
+
+  if (multiplayer && roomRef && playerSymbol) {
+    db.ref(`rooms/${roomCode}/names/${playerSymbol}`).set(myName);
+  }
 }
 
-function createRoom(){
+/**********************************************************
+ * MULTIPLAYER – CREATE / JOIN / EXIT
+ **********************************************************/
+function createRoom() {
   roomCode = Math.random().toString(36).substr(2,6).toUpperCase();
   playerSymbol = "X";
   multiplayer = true;
 
-  roomRef  = db.ref("rooms/" + roomCode);
+  roomRef  = db.ref(`rooms/${roomCode}`);
   namesRef = db.ref(`rooms/${roomCode}/names`);
-  chatRef  = db.ref("chats/" + roomCode);
+  chatRef  = db.ref(`chats/${roomCode}`);
 
-  // ✅ IMPORTANT: gameOver added
   roomRef.set({
     board: Array(9).fill(" "),
     turn: "X",
@@ -67,7 +143,6 @@ function createRoom(){
 
   roomStatus.style.display = "block";
   roomStatus.innerText = `🟢 In Room ${roomCode} (You are X)`;
-
   document.getElementById("exitRoomBtn").style.display = "inline-block";
   document.getElementById("nameModal").style.display = "flex";
 
@@ -76,100 +151,78 @@ function createRoom(){
   listenChat();
 }
 
-function restartGame(){
-  popup.style.display = "none";
-  gameActive = true;
-  currentPlayer = "X";
+function joinRoom() {
+  const code = document.getElementById("roomCode").value.trim();
+  if (!code) return alert("Enter room code");
 
-  if (multiplayer && roomRef) {
-    roomRef.update({
-      board: Array(9).fill(" "),
-      turn: "X",
-      gameOver: false
-    });
-  } else {
-    board = Array(9).fill(" ");
-    renderBoard();
-  }
-}
+  roomCode = code;
+  playerSymbol = "O";
+  multiplayer = true;
 
+  roomRef  = db.ref(`rooms/${roomCode}`);
+  namesRef = db.ref(`rooms/${roomCode}/names`);
+  chatRef  = db.ref(`chats/${roomCode}`);
 
-function joinRoom(){
-  roomCode=document.getElementById("roomCode").value.trim();
-  if(!roomCode)return;
-  playerSymbol="O"; multiplayer=true;
-  roomRef=db.ref("rooms/"+roomCode);
-  namesRef=db.ref(`rooms/${roomCode}/names`);
-  chatRef=db.ref("chats/"+roomCode);
+  roomStatus.style.display = "block";
+  roomStatus.innerText = `🟢 In Room ${roomCode} (You are O)`;
+  document.getElementById("exitRoomBtn").style.display = "inline-block";
+  document.getElementById("nameModal").style.display = "flex";
 
-  roomStatus.style.display="block";
-  roomStatus.innerText=`🟢 In Room ${roomCode} (You are O)`;
-  document.getElementById("exitRoomBtn").style.display="inline-block";
-  document.getElementById("nameModal").style.display="flex";
-
-  listenRoom(); listenNames(); listenChat();
+  listenRoom();
+  listenNames();
+  listenChat();
 }
 
 function exitRoom() {
   if (!multiplayer || !roomCode) return;
 
-  const currentRoom = roomCode;
-  const mySymbol = playerSymbol;
+  // Detach listeners
+  roomRef?.off();
+  namesRef?.off();
+  chatRef?.off();
 
-  // 1️⃣ Detach listeners
-  if (roomRef) roomRef.off();
-  if (namesRef) namesRef.off();
-  if (chatRef) chatRef.off();
+  // Remove my name
+  db.ref(`rooms/${roomCode}/names/${playerSymbol}`).remove();
 
-  // 2️⃣ Remove my name from room
-  db.ref(`rooms/${currentRoom}/names/${mySymbol}`).remove();
-
-  // 3️⃣ Check if room is empty → auto-delete
-  db.ref(`rooms/${currentRoom}/names`).once("value", snap => {
-    const names = snap.val();
-
-    if (!names || Object.keys(names).length === 0) {
-      // 🚨 No players left → delete room + chat
-      db.ref(`rooms/${currentRoom}`).remove();
-      db.ref(`chats/${currentRoom}`).remove();
-      console.log("🧹 Room auto-deleted:", currentRoom);
+  // Auto-delete empty room
+  db.ref(`rooms/${roomCode}/names`).once("value", snap => {
+    if (!snap.exists()) {
+      db.ref(`rooms/${roomCode}`).remove();
+      db.ref(`chats/${roomCode}`).remove();
     }
   });
 
-  // 4️⃣ Reset local state
+  // Reset local state
+  multiplayer = false;
   roomCode = null;
   playerSymbol = null;
-  multiplayer = false;
-  playerNames = { X: "", O: "" };
+  playerNames = { X:"", O:"" };
 
   board = Array(9).fill(" ");
   currentPlayer = "X";
   gameActive = true;
 
-  // 5️⃣ Clear UI
+  // Reset UI
   messagesDiv.innerHTML = "";
   popup.style.display = "none";
+  roomStatus.style.display = "none";
+  document.getElementById("exitRoomBtn").style.display = "none";
   statusText.innerText = "Not in a room";
 
-  document.getElementById("exitRoomBtn").style.display = "none";
-  roomStatus.style.display = "none";
-  roomStatus.innerText = "";
-
   renderBoard();
-
-  alert("You exited the room");
 }
 
-
-function listenNames(){
-  namesRef.on("value",s=>{
-    playerNames=s.val()||{};
-    document.getElementById("playerX").value=playerNames.X||"Player X";
-    document.getElementById("playerO").value=playerNames.O||"Player O";
+/**********************************************************
+ * FIREBASE LISTENERS
+ **********************************************************/
+function listenNames() {
+  namesRef.on("value", snap => {
+    playerNames = snap.val() || {};
+    updateScoreboard();
   });
 }
 
-function listenRoom(){
+function listenRoom() {
   roomRef.on("value", snap => {
     const d = snap.val();
     if (!d) return;
@@ -211,42 +264,80 @@ function listenRoom(){
   });
 }
 
+/**********************************************************
+ * CHAT
+ **********************************************************/
+function sendMessage() {
+  if (!chatInput.value.trim()) return;
 
+  chatRef.push({
+    sender: myName || playerSymbol,
+    text: chatInput.value,
+    time: Date.now()
+  });
 
-
-
-function checkWinner(player) {
-  return wins.some(p => p.every(i => board[i] === player));
+  chatInput.value = "";
 }
 
-function getWinningPattern(player) {
-  return wins.find(p => p.every(i => board[i] === player));
-}
-
-function isDraw() {
-  return !board.includes(" ");
-}
-
-
-function handleMove(i){
-  if(board[i]!==" "||!gameActive)return;
-  if(multiplayer && currentPlayer!==playerSymbol)return;
-  board[i]=playerSymbol||currentPlayer;
-  roomRef.update({board,turn:currentPlayer==="X"?"O":"X"});
-}
-
-function sendMessage(){
-  if(!chatInput.value)return;
-  chatRef.push({sender:myName,text:chatInput.value});
-  chatInput.value="";
-}
-
-function listenChat(){
-  chatRef.limitToLast(50).on("child_added",s=>{
-    const m=s.val();
-    messagesDiv.innerHTML+=`<div><b>${m.sender}:</b> ${m.text}</div>`;
-    messagesDiv.scrollTop=messagesDiv.scrollHeight;
+function listenChat() {
+  chatRef.limitToLast(50).on("child_added", snap => {
+    const m = snap.val();
+    messagesDiv.innerHTML +=
+      `<div><b>${m.sender}:</b> ${m.text}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
   });
 }
 
+/**********************************************************
+ * GAME MOVE HANDLER
+ **********************************************************/
+function handleMove(index) {
+  if (!gameActive || board[index] !== " ") return;
+
+  // Multiplayer
+  if (multiplayer) {
+    if (currentPlayer !== playerSymbol) return;
+
+    board[index] = playerSymbol;
+    roomRef.update({
+      board,
+      turn: playerSymbol === "X" ? "O" : "X"
+    });
+    return;
+  }
+
+  // Local / AI
+  board[index] = currentPlayer;
+  renderBoard();
+
+  if (checkWinner(currentPlayer)) return showPopup(currentPlayer);
+  if (isDraw()) return showPopup("draw");
+
+  currentPlayer = currentPlayer === "X" ? "O" : "X";
+}
+
+/**********************************************************
+ * PLAY AGAIN
+ **********************************************************/
+function restartGame() {
+  popup.style.display = "none";
+  gameActive = true;
+  currentPlayer = "X";
+
+  if (multiplayer && roomRef) {
+    roomRef.update({
+      board: Array(9).fill(" "),
+      turn: "X",
+      gameOver: false
+    });
+  } else {
+    board = Array(9).fill(" ");
+    renderBoard();
+  }
+}
+
+/**********************************************************
+ * INIT
+ **********************************************************/
 renderBoard();
+updateScoreboard();
