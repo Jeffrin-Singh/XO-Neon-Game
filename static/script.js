@@ -49,21 +49,50 @@ function saveMyName(){
 }
 
 function createRoom(){
-  roomCode=Math.random().toString(36).substr(2,6).toUpperCase();
-  playerSymbol="X"; multiplayer=true;
-  roomRef=db.ref("rooms/"+roomCode);
-  namesRef=db.ref(`rooms/${roomCode}/names`);
-  chatRef=db.ref("chats/"+roomCode);
+  roomCode = Math.random().toString(36).substr(2,6).toUpperCase();
+  playerSymbol = "X";
+  multiplayer = true;
 
-  roomRef.set({board:Array(9).fill(" "),turn:"X",names:{}});
+  roomRef  = db.ref("rooms/" + roomCode);
+  namesRef = db.ref(`rooms/${roomCode}/names`);
+  chatRef  = db.ref("chats/" + roomCode);
 
-  roomStatus.style.display="block";
-  roomStatus.innerText=`🟢 In Room ${roomCode} (You are X)`;
-  document.getElementById("exitRoomBtn").style.display="inline-block";
-  document.getElementById("nameModal").style.display="flex";
+  // ✅ IMPORTANT: gameOver added
+  roomRef.set({
+    board: Array(9).fill(" "),
+    turn: "X",
+    names: {},
+    gameOver: false
+  });
 
-  listenRoom(); listenNames(); listenChat();
+  roomStatus.style.display = "block";
+  roomStatus.innerText = `🟢 In Room ${roomCode} (You are X)`;
+
+  document.getElementById("exitRoomBtn").style.display = "inline-block";
+  document.getElementById("nameModal").style.display = "flex";
+
+  listenRoom();
+  listenNames();
+  listenChat();
 }
+
+function restartGame(){
+  popup.style.display = "none";
+  gameActive = true;
+  currentPlayer = "X";
+
+  if (multiplayer && roomRef) {
+    roomRef.update({
+      board: Array(9).fill(" "),
+      turn: "X",
+      gameOver: false
+    });
+  } else {
+    board = Array(9).fill(" ");
+    renderBoard();
+  }
+}
+
 
 function joinRoom(){
   roomCode=document.getElementById("roomCode").value.trim();
@@ -114,22 +143,30 @@ function listenRoom(){
     board = d.board;
     currentPlayer = d.turn;
 
+    if (d.gameOver) {
+      renderBoard();
+      return;
+    }
+
     const winX = getWinningPattern("X");
     const winO = getWinningPattern("O");
 
     if (winX) {
+      roomRef.update({ gameOver: true });
       renderBoard(winX);
       showPopup("X");
       return;
     }
 
     if (winO) {
+      roomRef.update({ gameOver: true });
       renderBoard(winO);
       showPopup("O");
       return;
     }
 
     if (isDraw()) {
+      roomRef.update({ gameOver: true });
       showPopup("draw");
       return;
     }
@@ -139,6 +176,9 @@ function listenRoom(){
     statusText.innerText = `Turn: ${currentPlayer}`;
   });
 }
+
+
+
 
 
 function checkWinner(player) {
