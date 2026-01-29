@@ -4,6 +4,10 @@
 let roomCode = null;
 let playerSymbol = null;
 let multiplayer = false;
+let roomRef = null;
+let namesRef = null;
+let chatRef = null;
+
 
 let myName = "";
 let playerNames = { X: "", O: "" };
@@ -194,19 +198,33 @@ function createRoom() {
     playerSymbol = "X";
     multiplayer = true;
 
-    db.ref("rooms/" + roomCode).set({
+    // Firebase refs (IMPORTANT)
+    roomRef = db.ref("rooms/" + roomCode);
+    namesRef = db.ref("rooms/" + roomCode + "/names");
+    chatRef = db.ref("chats/" + roomCode);
+
+    roomRef.set({
         board: Array(9).fill(" "),
         turn: "X",
         names: {}
     });
 
+    // UI updates
     alert("Room Code: " + roomCode);
+
+    document.getElementById("roomStatus").style.display = "block";
+    document.getElementById("roomStatus").innerText =
+        `🟢 In Room: ${roomCode} (You are X)`;
+
+    document.getElementById("exitRoomBtn").style.display = "inline-block";
     document.getElementById("nameModal").style.display = "flex";
 
+    // Start listeners
     listenRoom();
     listenNames();
     listenChat();
 }
+
 
 function joinRoom() {
     const code = document.getElementById("roomCode").value.trim();
@@ -216,12 +234,25 @@ function joinRoom() {
     playerSymbol = "O";
     multiplayer = true;
 
+    // Firebase refs
+    roomRef = db.ref("rooms/" + roomCode);
+    namesRef = db.ref("rooms/" + roomCode + "/names");
+    chatRef = db.ref("chats/" + roomCode);
+
+    // UI updates
+    document.getElementById("roomStatus").style.display = "block";
+    document.getElementById("roomStatus").innerText =
+        `🟢 In Room: ${roomCode} (You are O)`;
+
+    document.getElementById("exitRoomBtn").style.display = "inline-block";
     document.getElementById("nameModal").style.display = "flex";
 
+    // Start listeners
     listenRoom();
     listenNames();
     listenChat();
 }
+
 
 function listenNames() {
     db.ref(`rooms/${roomCode}/names`).on("value", snap => {
@@ -339,7 +370,10 @@ function restartGame(){
     }
 
     renderBoard();
+
 }
+
+
 
 /***********************
  * INIT
