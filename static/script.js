@@ -110,22 +110,56 @@ function joinRoom(){
   listenRoom(); listenNames(); listenChat();
 }
 
-function exitRoom(){
-  if(roomRef)roomRef.off();
-  if(namesRef)namesRef.off();
-  if(chatRef)chatRef.off();
+function exitRoom() {
+  if (!multiplayer || !roomCode) return;
 
-  db.ref(`rooms/${roomCode}/names/${playerSymbol}`).remove();
+  const currentRoom = roomCode;
+  const mySymbol = playerSymbol;
 
-  roomCode=null; playerSymbol=null; multiplayer=false;
-  roomStatus.style.display="none";
-  document.getElementById("exitRoomBtn").style.display="none";
-  messagesDiv.innerHTML="";
-  popup.style.display="none";
+  // 1️⃣ Detach listeners
+  if (roomRef) roomRef.off();
+  if (namesRef) namesRef.off();
+  if (chatRef) chatRef.off();
 
-  board=Array(9).fill(" ");
+  // 2️⃣ Remove my name from room
+  db.ref(`rooms/${currentRoom}/names/${mySymbol}`).remove();
+
+  // 3️⃣ Check if room is empty → auto-delete
+  db.ref(`rooms/${currentRoom}/names`).once("value", snap => {
+    const names = snap.val();
+
+    if (!names || Object.keys(names).length === 0) {
+      // 🚨 No players left → delete room + chat
+      db.ref(`rooms/${currentRoom}`).remove();
+      db.ref(`chats/${currentRoom}`).remove();
+      console.log("🧹 Room auto-deleted:", currentRoom);
+    }
+  });
+
+  // 4️⃣ Reset local state
+  roomCode = null;
+  playerSymbol = null;
+  multiplayer = false;
+  playerNames = { X: "", O: "" };
+
+  board = Array(9).fill(" ");
+  currentPlayer = "X";
+  gameActive = true;
+
+  // 5️⃣ Clear UI
+  messagesDiv.innerHTML = "";
+  popup.style.display = "none";
+  statusText.innerText = "Not in a room";
+
+  document.getElementById("exitRoomBtn").style.display = "none";
+  roomStatus.style.display = "none";
+  roomStatus.innerText = "";
+
   renderBoard();
+
+  alert("You exited the room");
 }
+
 
 function listenNames(){
   namesRef.on("value",s=>{
