@@ -91,28 +91,61 @@ input,button{
   pointer-events:auto;
   touch-action:manipulation;
 }
+
 #developerInfo {
   position: fixed;
   top: 12px;
   right: 12px;
-  background: rgba(22,27,46,0.9);
-  border: 1.5px solid var(--primary);
+  background: rgba(22,27,46,0.96);
+  border: 1.5px solid #00ffe7;
   border-radius: 14px;
   padding: 8px 14px;
-  text-align: right;
-  z-index: 1000;
-  box-shadow: 0 0 15px rgba(0,255,231,0.3);
+  z-index: 1200;
+  box-shadow: 0 0 15px rgba(0,255,231,0.35);
+  transition: all 0.3s ease;
 }
 
 #developerInfo .dev-name {
   color: #fff;
   font-weight: 600;
   font-size: 14px;
+  white-space: nowrap;
+}
+
+#developerInfo .dev-name a {
+  color: #00ffe7;
+  text-decoration: none;
+}
+
+#developerInfo .dev-name a:hover {
+  text-decoration: underline;
 }
 
 #developerInfo .dev-role {
-  color: var(--primary);
+  color: #00ffe7;
   font-size: 12px;
+}
+
+/* 📱 MOBILE MODE */
+@media (max-width: 600px) {
+  #developerInfo {
+    top: auto;
+    bottom: 10px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    border-radius: 999px;     /* pill */
+    padding: 6px 14px;
+    text-align: center;
+  }
+
+  #developerInfo .dev-name {
+    font-size: 12px;
+  }
+
+  #developerInfo .dev-role {
+    display: none;            /* clean mobile UI */
+  }
 }
 
 /* 📱 Mobile adjustment */
@@ -241,5 +274,29 @@ const db=firebase.database();
 </script>
 
 <script src="./static/script.js"></script>
+<script>
+  const devInfo = document.getElementById("developerInfo");
+  let devTimer;
+
+  function hideDevInfo() {
+    if (window.innerWidth <= 600) {
+      devInfo.style.opacity = "0";
+      devInfo.style.pointerEvents = "none";
+    }
+  }
+
+  function showDevInfo() {
+    if (window.innerWidth <= 600) {
+      devInfo.style.opacity = "1";
+      devInfo.style.pointerEvents = "auto";
+      clearTimeout(devTimer);
+      devTimer = setTimeout(hideDevInfo, 3000);
+    }
+  }
+
+  window.addEventListener("load", showDevInfo);
+  document.addEventListener("touchstart", showDevInfo);
+</script>
+
 </body>
 </html>
