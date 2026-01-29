@@ -41,6 +41,11 @@ const popupText  = document.getElementById("popupText");
 const playAgainBtn = document.getElementById("playAgainBtn");
 const winSound   = document.getElementById("winSound");
 
+const myProfile = document.getElementById("myProfile");
+const myProfileName = document.getElementById("myProfileName");
+const myProfileStatus = document.getElementById("myProfileStatus");
+
+
 /**********************************************************
  * SCOREBOARD
  **********************************************************/
@@ -125,7 +130,7 @@ function saveMyName() {
  * ONLINE MULTIPLAYER
  **********************************************************/
 function createRoom() {
-  roomCode = Math.random().toString(36).substr(2,6).toUpperCase();
+  roomCode = Math.random().toString(36).substr(2, 6).toUpperCase();
   playerSymbol = "X";
   multiplayer = true;
 
@@ -140,15 +145,22 @@ function createRoom() {
     gameOver: false
   });
 
+  // UI
   roomStatus.style.display = "block";
   roomStatus.innerText = `🟢 In Room ${roomCode} (You are X)`;
   document.getElementById("exitRoomBtn").style.display = "inline-block";
   document.getElementById("nameModal").style.display = "flex";
 
+  // 👤 profile badge
+  myProfile.style.display = "block";
+  myProfileName.innerText = `👤 ${myName || "You"} (X)`;
+  myProfileStatus.innerText = "🟢 Online";
+
   listenRoom();
   listenNames();
   listenChat();
 }
+
 
 function joinRoom() {
   const code = document.getElementById("roomCode").value.trim();
@@ -167,38 +179,69 @@ function joinRoom() {
   document.getElementById("exitRoomBtn").style.display = "inline-block";
   document.getElementById("nameModal").style.display = "flex";
 
+  // 👤 profile badge
+  myProfile.style.display = "block";
+  myProfileName.innerText = `👤 ${myName || "You"} (O)`;
+  myProfileStatus.innerText = "🟢 Online";
+
   listenRoom();
   listenNames();
   listenChat();
 }
 
-function exitRoom() {
-  if (!multiplayer) return;
 
+function exitRoom() {
+  if (!multiplayer || !roomCode) return;
+
+  const currentRoom = roomCode;
+  const mySymbol = playerSymbol;
+
+  // 🔌 Detach listeners
   roomRef?.off();
   namesRef?.off();
   chatRef?.off();
 
-  namesRef?.child(playerSymbol)?.remove();
+  // 🧹 Remove my name from room
+  if (mySymbol) {
+    db.ref(`rooms/${currentRoom}/names/${mySymbol}`).remove();
+  }
 
+  // 🗑️ Auto-delete room if empty
+  db.ref(`rooms/${currentRoom}/names`).once("value", snap => {
+    const names = snap.val();
+    if (!names || Object.keys(names).length === 0) {
+      db.ref(`rooms/${currentRoom}`).remove();
+      db.ref(`chats/${currentRoom}`).remove();
+    }
+  });
+
+  // 🔄 Reset state
   multiplayer = false;
   roomCode = null;
   playerSymbol = null;
-  playerNames = { X:"", O:"" };
+  playerNames = { X: "", O: "" };
 
   board = Array(9).fill(" ");
   currentPlayer = "X";
   gameActive = true;
 
+  // 🧼 UI cleanup
+  messagesDiv.innerHTML = "";
   popup.style.display = "none";
   roomStatus.style.display = "none";
   document.getElementById("exitRoomBtn").style.display = "none";
-  messagesDiv.innerHTML = "";
   statusText.innerText = "Local Game";
+
+  // 👤 profile badge update
+  myProfileStatus.innerText = "🔴 Offline";
+  myProfileName.innerText = `👤 ${myName || "You"}`;
 
   renderBoard();
   updateScoreboard();
+
+  alert("You exited the room");
 }
+
 
 /**********************************************************
  * FIREBASE LISTENERS
@@ -300,6 +343,26 @@ function handleMove(index) {
   currentPlayer = currentPlayer === "X" ? "O" : "X";
   statusText.innerText = `Turn: ${currentPlayer}`;
 }
+
+function saveMyName() {
+  const input = document.getElementById("myName").value.trim();
+  if (!input) return alert("Enter your name");
+
+  myName = input;
+  document.getElementById("nameModal").style.display = "none";
+
+  // 🔹 Show profile badge
+  myProfile.style.display = "block";
+  myProfileName.innerText = `👤 ${myName} (${playerSymbol || "X"})`;
+
+  if (multiplayer && roomCode && playerSymbol) {
+    myProfileStatus.innerText = "🟢 Online";
+    namesRef.child(playerSymbol).set(myName);
+  } else {
+    myProfileStatus.innerText = "🟡 Local";
+  }
+}
+
 
 /**********************************************************
  * PLAY AGAIN (MOBILE SAFE)
