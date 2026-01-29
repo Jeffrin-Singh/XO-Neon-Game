@@ -91,6 +91,47 @@ input,button{
   pointer-events:auto;
   touch-action:manipulation;
 }
+#developerInfo {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  background: rgba(22,27,46,0.9);
+  border: 1.5px solid var(--primary);
+  border-radius: 14px;
+  padding: 8px 14px;
+  text-align: right;
+  z-index: 1000;
+  box-shadow: 0 0 15px rgba(0,255,231,0.3);
+}
+
+#developerInfo .dev-name {
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+#developerInfo .dev-role {
+  color: var(--primary);
+  font-size: 12px;
+}
+
+/* 📱 Mobile adjustment */
+@media (max-width: 600px) {
+  #developerInfo {
+    top: 8px;
+    right: 8px;
+    padding: 6px 10px;
+  }
+
+  #developerInfo .dev-name {
+    font-size: 12px;
+  }
+
+  #developerInfo .dev-role {
+    font-size: 11px;
+  }
+}
+
 
 @media(max-width:600px){
   .cell{width:65px;height:65px;font-size:2.2rem}
@@ -122,7 +163,7 @@ input,button{
 <div class="board" id="board"></div>
 
 <!-- 👤 MY PROFILE BADGE -->
-<div id="myProfile" style="
+<!-- <div id="myProfile" style="
   position:fixed;
   top:12px;
   right:12px;
@@ -140,7 +181,21 @@ input,button{
   <div id="myProfileStatus" style="font-size:12px;color:#00ffe7;">
     Offline
   </div>
+</div> -->
+
+<!-- 👤 DEVELOPER INFO -->
+<div id="developerInfo">
+  <div class="dev-name">
+    👨‍💻 Developed by
+    <a href="https://github.com/yourusername" target="_blank"
+       style="color:#00ffe7;text-decoration:none;">
+      Jeffrin Singh
+    </a>
+  </div>
+  <div class="dev-role">Full-Stack Developer</div>
 </div>
+
+
 
 
 <!-- CHAT -->
