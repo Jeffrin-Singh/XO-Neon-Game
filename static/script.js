@@ -2,7 +2,7 @@
  * GLOBAL STATE
  **********************************************************/
 let roomCode = null;
-let playerSymbol = null;     // "X" or "O" (online only)
+let playerSymbol = null; // X or O (online)
 let multiplayer = false;
 
 let myName = "";
@@ -27,31 +27,33 @@ const wins = [
 ];
 
 /**********************************************************
- * DOM ELEMENTS
+ * DOM ELEMENTS (SAFE)
  **********************************************************/
-const boardDiv   = document.getElementById("board");
-const statusText = document.getElementById("status");
-const scoreDiv   = document.getElementById("scoreboard");
-const messagesDiv= document.getElementById("messages");
-const chatInput  = document.getElementById("chatInput");
-const roomStatus = document.getElementById("roomStatus");
+const $ = id => document.getElementById(id);
 
-const popup      = document.getElementById("popup");
-const popupText  = document.getElementById("popupText");
-const playAgainBtn = document.getElementById("playAgainBtn");
-const winSound   = document.getElementById("winSound");
+const boardDiv   = $("board");
+const statusText = $("status");
+const scoreDiv   = $("scoreboard");
+const messagesDiv= $("messages");
+const chatInput  = $("chatInput");
+const roomStatus = $("roomStatus");
 
-const myProfile = document.getElementById("myProfile");
-const myProfileName = document.getElementById("myProfileName");
-const myProfileStatus = document.getElementById("myProfileStatus");
+const popup      = $("popup");
+const popupText  = $("popupText");
+const playAgainBtn = $("playAgainBtn");
+const winSound   = $("winSound");
 
+const myProfile       = $("myProfile");
+const myProfileName   = $("myProfileName");
+const myProfileStatus = $("myProfileStatus");
 
 /**********************************************************
  * SCOREBOARD
  **********************************************************/
 function updateScoreboard() {
-  scoreDiv.innerText =
-    `${playerNames.X || "Player X"} vs ${playerNames.O || "Player O"}`;
+  const x = playerNames.X || "Waiting...";
+  const o = playerNames.O || "Waiting...";
+  scoreDiv.innerText = `${x}  vs  ${o}`;
 }
 
 /**********************************************************
@@ -61,40 +63,29 @@ function renderBoard(winPattern = null) {
   boardDiv.innerHTML = "";
 
   board.forEach((v, i) => {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    if (v === "X") cell.classList.add("x");
-    if (v === "O") cell.classList.add("o");
+    const c = document.createElement("div");
+    c.className = "cell";
+    if (v === "X") c.classList.add("x");
+    if (v === "O") c.classList.add("o");
 
     if (winPattern && winPattern.includes(i)) {
-      cell.style.boxShadow = "0 0 20px #00ffe7";
-      cell.style.transform = "scale(1.1)";
+      c.style.boxShadow = "0 0 20px #00ffe7";
+      c.style.transform = "scale(1.1)";
     }
 
-    cell.innerText = v;
-    cell.onclick = () => handleMove(i);
-    boardDiv.appendChild(cell);
+    c.textContent = v;
+    c.onclick = () => handleMove(i);
+    boardDiv.appendChild(c);
   });
 }
 
 /**********************************************************
  * GAME HELPERS
  **********************************************************/
-function checkWinner(p) {
-  return wins.some(w => w.every(i => board[i] === p));
-}
-
-function getWinningPattern(p) {
-  return wins.find(w => w.every(i => board[i] === p));
-}
-
-function isDraw() {
-  return !board.includes(" ");
-}
-
-function getPlayerName(symbol) {
-  return playerNames[symbol] || `Player ${symbol}`;
-}
+const checkWinner = p => wins.some(w => w.every(i => board[i] === p));
+const getWinningPattern = p => wins.find(w => w.every(i => board[i] === p));
+const isDraw = () => !board.includes(" ");
+const getPlayerName = s => playerNames[s] || `Player ${s}`;
 
 /**********************************************************
  * POPUP
@@ -102,24 +93,30 @@ function getPlayerName(symbol) {
 function showPopup(result) {
   gameActive = false;
 
-  popupText.innerText =
+  popupText.textContent =
     result === "draw"
       ? "🤝 Match Draw!"
-      : `🏆 ${getPlayerName(result)} (${result}) Wins!`;
+      : `🏆 ${getPlayerName(result)} Wins!`;
 
   popup.style.display = "flex";
   winSound?.play();
 }
 
 /**********************************************************
- * NAME HANDLING
+ * NAME HANDLING (SINGLE SOURCE)
  **********************************************************/
 function saveMyName() {
-  const input = document.getElementById("myName").value.trim();
+  const input = $("myName")?.value.trim();
   if (!input) return alert("Enter your name");
 
   myName = input;
-  document.getElementById("nameModal").style.display = "none";
+  $("nameModal").style.display = "none";
+
+  if (myProfile) {
+    myProfile.style.display = "block";
+    myProfileName.textContent = `👤 ${myName}`;
+    myProfileStatus.textContent = multiplayer ? "🟢 Online" : "🟡 Local";
+  }
 
   if (multiplayer && namesRef && playerSymbol) {
     namesRef.child(playerSymbol).set(myName);
@@ -130,7 +127,7 @@ function saveMyName() {
  * ONLINE MULTIPLAYER
  **********************************************************/
 function createRoom() {
-  roomCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+  roomCode = Math.random().toString(36).substr(2,6).toUpperCase();
   playerSymbol = "X";
   multiplayer = true;
 
@@ -145,25 +142,18 @@ function createRoom() {
     gameOver: false
   });
 
-  // UI
   roomStatus.style.display = "block";
-  roomStatus.innerText = `🟢 In Room ${roomCode} (You are X)`;
-  document.getElementById("exitRoomBtn").style.display = "inline-block";
-  document.getElementById("nameModal").style.display = "flex";
-
-  // 👤 profile badge
-  myProfile.style.display = "block";
-  myProfileName.innerText = `👤 ${myName || "You"} (X)`;
-  myProfileStatus.innerText = "🟢 Online";
+  roomStatus.textContent = `🟢 In Room ${roomCode} (You are X)`;
+  $("exitRoomBtn").style.display = "inline-block";
+  $("nameModal").style.display = "flex";
 
   listenRoom();
   listenNames();
   listenChat();
 }
 
-
 function joinRoom() {
-  const code = document.getElementById("roomCode").value.trim();
+  const code = $("roomCode").value.trim();
   if (!code) return alert("Enter room code");
 
   roomCode = code;
@@ -175,73 +165,46 @@ function joinRoom() {
   chatRef  = db.ref(`chats/${roomCode}`);
 
   roomStatus.style.display = "block";
-  roomStatus.innerText = `🟢 In Room ${roomCode} (You are O)`;
-  document.getElementById("exitRoomBtn").style.display = "inline-block";
-  document.getElementById("nameModal").style.display = "flex";
-
-  // 👤 profile badge
-  myProfile.style.display = "block";
-  myProfileName.innerText = `👤 ${myName || "You"} (O)`;
-  myProfileStatus.innerText = "🟢 Online";
+  roomStatus.textContent = `🟢 In Room ${roomCode} (You are O)`;
+  $("exitRoomBtn").style.display = "inline-block";
+  $("nameModal").style.display = "flex";
 
   listenRoom();
   listenNames();
   listenChat();
 }
 
-
 function exitRoom() {
-  if (!multiplayer || !roomCode) return;
+  if (!multiplayer) return;
 
-  const currentRoom = roomCode;
-  const mySymbol = playerSymbol;
-
-  // 🔌 Detach listeners
   roomRef?.off();
   namesRef?.off();
   chatRef?.off();
 
-  // 🧹 Remove my name from room
-  if (mySymbol) {
-    db.ref(`rooms/${currentRoom}/names/${mySymbol}`).remove();
+  if (playerSymbol) {
+    namesRef.child(playerSymbol).remove();
   }
 
-  // 🗑️ Auto-delete room if empty
-  db.ref(`rooms/${currentRoom}/names`).once("value", snap => {
-    const names = snap.val();
-    if (!names || Object.keys(names).length === 0) {
-      db.ref(`rooms/${currentRoom}`).remove();
-      db.ref(`chats/${currentRoom}`).remove();
-    }
-  });
-
-  // 🔄 Reset state
   multiplayer = false;
   roomCode = null;
   playerSymbol = null;
-  playerNames = { X: "", O: "" };
+  playerNames = { X:"", O:"" };
 
   board = Array(9).fill(" ");
   currentPlayer = "X";
   gameActive = true;
 
-  // 🧼 UI cleanup
   messagesDiv.innerHTML = "";
   popup.style.display = "none";
   roomStatus.style.display = "none";
-  document.getElementById("exitRoomBtn").style.display = "none";
-  statusText.innerText = "Local Game";
+  $("exitRoomBtn").style.display = "none";
+  statusText.textContent = "Local Game";
 
-  // 👤 profile badge update
-  myProfileStatus.innerText = "🔴 Offline";
-  myProfileName.innerText = `👤 ${myName || "You"}`;
+  if (myProfileStatus) myProfileStatus.textContent = "🔴 Offline";
 
   renderBoard();
   updateScoreboard();
-
-  alert("You exited the room");
 }
-
 
 /**********************************************************
  * FIREBASE LISTENERS
@@ -263,32 +226,25 @@ function listenRoom() {
 
     if (d.gameOver) return renderBoard();
 
-    const winX = getWinningPattern("X");
-    const winO = getWinningPattern("O");
-
-    if (winX) {
-      roomRef.update({ gameOver: true });
-      renderBoard(winX);
-      showPopup("X");
-      return;
-    }
-
-    if (winO) {
-      roomRef.update({ gameOver: true });
-      renderBoard(winO);
-      showPopup("O");
-      return;
+    for (const p of ["X","O"]) {
+      const win = getWinningPattern(p);
+      if (win) {
+        roomRef.update({ gameOver:true });
+        renderBoard(win);
+        showPopup(p);
+        return;
+      }
     }
 
     if (isDraw()) {
-      roomRef.update({ gameOver: true });
+      roomRef.update({ gameOver:true });
       showPopup("draw");
       return;
     }
 
     gameActive = true;
     renderBoard();
-    statusText.innerText = `Turn: ${currentPlayer}`;
+    statusText.textContent = `Turn: ${currentPlayer}`;
   });
 }
 
@@ -297,18 +253,12 @@ function listenRoom() {
  **********************************************************/
 function sendMessage() {
   if (!chatRef || !chatInput.value.trim()) return;
-
-  chatRef.push({
-    sender: myName || playerSymbol,
-    text: chatInput.value,
-    time: Date.now()
-  });
-
+  chatRef.push({ sender: myName || playerSymbol, text: chatInput.value });
   chatInput.value = "";
 }
 
 function listenChat() {
-  chatRef.limitToLast(50).on("child_added", snap => {
+  chatRef.on("child_added", snap => {
     const m = snap.val();
     messagesDiv.innerHTML += `<div><b>${m.sender}:</b> ${m.text}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -318,14 +268,12 @@ function listenChat() {
 /**********************************************************
  * MOVE HANDLER (NO AI)
  **********************************************************/
-function handleMove(index) {
-  if (!gameActive || board[index] !== " ") return;
+function handleMove(i) {
+  if (!gameActive || board[i] !== " ") return;
 
-  // Online
   if (multiplayer) {
     if (currentPlayer !== playerSymbol) return;
-
-    board[index] = playerSymbol;
+    board[i] = playerSymbol;
     roomRef.update({
       board,
       turn: playerSymbol === "X" ? "O" : "X"
@@ -333,36 +281,15 @@ function handleMove(index) {
     return;
   }
 
-  // Local 2-player
-  board[index] = currentPlayer;
+  board[i] = currentPlayer;
   renderBoard();
 
   if (checkWinner(currentPlayer)) return showPopup(currentPlayer);
   if (isDraw()) return showPopup("draw");
 
   currentPlayer = currentPlayer === "X" ? "O" : "X";
-  statusText.innerText = `Turn: ${currentPlayer}`;
+  statusText.textContent = `Turn: ${currentPlayer}`;
 }
-
-function saveMyName() {
-  const input = document.getElementById("myName").value.trim();
-  if (!input) return alert("Enter your name");
-
-  myName = input;
-  document.getElementById("nameModal").style.display = "none";
-
-  // 🔹 Show profile badge
-  myProfile.style.display = "block";
-  myProfileName.innerText = `👤 ${myName} (${playerSymbol || "X"})`;
-
-  if (multiplayer && roomCode && playerSymbol) {
-    myProfileStatus.innerText = "🟢 Online";
-    namesRef.child(playerSymbol).set(myName);
-  } else {
-    myProfileStatus.innerText = "🟡 Local";
-  }
-}
-
 
 /**********************************************************
  * PLAY AGAIN (MOBILE SAFE)
@@ -384,15 +311,11 @@ function restartGame() {
   }
 }
 
-if (playAgainBtn) {
-  const handler = e => {
-    e.preventDefault();
-    e.stopPropagation();
-    restartGame();
-  };
-  playAgainBtn.addEventListener("click", handler);
-  playAgainBtn.addEventListener("touchstart", handler, { passive:false });
-}
+playAgainBtn?.addEventListener("click", restartGame);
+playAgainBtn?.addEventListener("touchstart", e => {
+  e.preventDefault();
+  restartGame();
+}, { passive:false });
 
 /**********************************************************
  * INIT
