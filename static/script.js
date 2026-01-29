@@ -2,7 +2,7 @@
  * GLOBAL STATE
  **********************************************************/
 let roomCode = null;
-let playerSymbol = null;      // "X" or "O" (multiplayer only)
+let playerSymbol = null;     // "X" or "O" (online only)
 let multiplayer = false;
 
 let myName = "";
@@ -12,7 +12,7 @@ let board = Array(9).fill(" ");
 let currentPlayer = "X";
 let gameActive = true;
 
-// Firebase refs (multiplayer only)
+// Firebase refs
 let roomRef = null;
 let namesRef = null;
 let chatRef  = null;
@@ -35,47 +35,11 @@ const scoreDiv   = document.getElementById("scoreboard");
 const messagesDiv= document.getElementById("messages");
 const chatInput  = document.getElementById("chatInput");
 const roomStatus = document.getElementById("roomStatus");
+
 const popup      = document.getElementById("popup");
 const popupText  = document.getElementById("popupText");
-const winSound   = document.getElementById("winSound");
 const playAgainBtn = document.getElementById("playAgainBtn");
-
-if (playAgainBtn) {
-  const handler = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    restartGame();
-  };
-
-  playAgainBtn.addEventListener("click", handler);
-  playAgainBtn.addEventListener("touchstart", handler, { passive: false });
-}
-
-modeSelect.addEventListener("change", () => {
-  if (modeSelect.value === "ai" || modeSelect.value === "two") {
-    // 🔥 force local mode
-    multiplayer = false;
-    roomCode = null;
-    playerSymbol = null;
-
-    if (roomRef) roomRef.off();
-    if (namesRef) namesRef.off();
-    if (chatRef) chatRef.off();
-
-    roomRef = namesRef = chatRef = null;
-
-    roomStatus.style.display = "none";
-    document.getElementById("exitRoomBtn").style.display = "none";
-
-    // reset board safely
-    board = Array(9).fill(" ");
-    currentPlayer = "X";
-    gameActive = true;
-    popup.style.display = "none";
-    renderBoard();
-  }
-});
-
+const winSound   = document.getElementById("winSound");
 
 /**********************************************************
  * SCOREBOARD
@@ -86,26 +50,24 @@ function updateScoreboard() {
 }
 
 /**********************************************************
- * RENDER BOARD
+ * BOARD RENDER
  **********************************************************/
 function renderBoard(winPattern = null) {
   boardDiv.innerHTML = "";
 
-  board.forEach((value, index) => {
+  board.forEach((v, i) => {
     const cell = document.createElement("div");
     cell.className = "cell";
+    if (v === "X") cell.classList.add("x");
+    if (v === "O") cell.classList.add("o");
 
-    if (value === "X") cell.classList.add("x");
-    if (value === "O") cell.classList.add("o");
-
-    if (winPattern && winPattern.includes(index)) {
+    if (winPattern && winPattern.includes(i)) {
       cell.style.boxShadow = "0 0 20px #00ffe7";
       cell.style.transform = "scale(1.1)";
     }
 
-    cell.innerText = value;
-    cell.onclick = () => handleMove(index);
-
+    cell.innerText = v;
+    cell.onclick = () => handleMove(i);
     boardDiv.appendChild(cell);
   });
 }
@@ -113,12 +75,12 @@ function renderBoard(winPattern = null) {
 /**********************************************************
  * GAME HELPERS
  **********************************************************/
-function checkWinner(player) {
-  return wins.some(p => p.every(i => board[i] === player));
+function checkWinner(p) {
+  return wins.some(w => w.every(i => board[i] === p));
 }
 
-function getWinningPattern(player) {
-  return wins.find(p => p.every(i => board[i] === player));
+function getWinningPattern(p) {
+  return wins.find(w => w.every(i => board[i] === p));
 }
 
 function isDraw() {
@@ -154,13 +116,13 @@ function saveMyName() {
   myName = input;
   document.getElementById("nameModal").style.display = "none";
 
-  if (multiplayer && roomRef && playerSymbol) {
+  if (multiplayer && namesRef && playerSymbol) {
     namesRef.child(playerSymbol).set(myName);
   }
 }
 
 /**********************************************************
- * MULTIPLAYER – CREATE / JOIN / EXIT
+ * ONLINE MULTIPLAYER
  **********************************************************/
 function createRoom() {
   roomCode = Math.random().toString(36).substr(2,6).toUpperCase();
@@ -211,15 +173,13 @@ function joinRoom() {
 }
 
 function exitRoom() {
-  if (!multiplayer || !roomCode) return;
+  if (!multiplayer) return;
 
   roomRef?.off();
   namesRef?.off();
   chatRef?.off();
 
-  if (playerSymbol) {
-    namesRef.child(playerSymbol).remove();
-  }
+  namesRef?.child(playerSymbol)?.remove();
 
   multiplayer = false;
   roomCode = null;
@@ -230,11 +190,11 @@ function exitRoom() {
   currentPlayer = "X";
   gameActive = true;
 
-  messagesDiv.innerHTML = "";
   popup.style.display = "none";
   roomStatus.style.display = "none";
   document.getElementById("exitRoomBtn").style.display = "none";
-  statusText.innerText = "Not in a room";
+  messagesDiv.innerHTML = "";
+  statusText.innerText = "Local Game";
 
   renderBoard();
   updateScoreboard();
@@ -258,10 +218,7 @@ function listenRoom() {
     board = d.board;
     currentPlayer = d.turn;
 
-    if (d.gameOver) {
-      renderBoard();
-      return;
-    }
+    if (d.gameOver) return renderBoard();
 
     const winX = getWinningPattern("X");
     const winO = getWinningPattern("O");
@@ -308,8 +265,6 @@ function sendMessage() {
 }
 
 function listenChat() {
-  if (!chatRef) return;
-
   chatRef.limitToLast(50).on("child_added", snap => {
     const m = snap.val();
     messagesDiv.innerHTML += `<div><b>${m.sender}:</b> ${m.text}</div>`;
@@ -318,12 +273,12 @@ function listenChat() {
 }
 
 /**********************************************************
- * GAME MOVE HANDLER
+ * MOVE HANDLER (NO AI)
  **********************************************************/
 function handleMove(index) {
   if (!gameActive || board[index] !== " ") return;
 
-  /* 🌐 MULTIPLAYER ONLY */
+  // Online
   if (multiplayer) {
     if (currentPlayer !== playerSymbol) return;
 
@@ -335,49 +290,19 @@ function handleMove(index) {
     return;
   }
 
-  /* 👤 LOCAL PLAYER */
+  // Local 2-player
   board[index] = currentPlayer;
   renderBoard();
 
   if (checkWinner(currentPlayer)) return showPopup(currentPlayer);
   if (isDraw()) return showPopup("draw");
 
-  /* 🤖 AI MODE */
-  if (modeSelect.value === "ai") {
-    gameActive = false;
-
-    setTimeout(() => {
-      const move = getAIMove();   // 👇 AI decision
-      board[move] = "O";
-      renderBoard();
-
-      if (checkWinner("O")) return showPopup("O");
-      if (isDraw()) return showPopup("draw");
-
-      currentPlayer = "X";
-      gameActive = true;
-    }, 400);
-
-    return;
-  }
-
-  /* 👥 LOCAL 2 PLAYER */
   currentPlayer = currentPlayer === "X" ? "O" : "X";
+  statusText.innerText = `Turn: ${currentPlayer}`;
 }
-
-function getAIMove() {
-  // simple hard AI fallback
-  const empty = board
-    .map((v, i) => (v === " " ? i : null))
-    .filter(v => v !== null);
-
-  return empty[Math.floor(Math.random() * empty.length)];
-}
-
-
 
 /**********************************************************
- * PLAY AGAIN
+ * PLAY AGAIN (MOBILE SAFE)
  **********************************************************/
 function restartGame() {
   popup.style.display = "none";
@@ -396,11 +321,15 @@ function restartGame() {
   }
 }
 
-playAgainBtn?.addEventListener("click", restartGame);
-playAgainBtn?.addEventListener("touchstart", e => {
-  e.preventDefault();
-  restartGame();
-}, { passive:false });
+if (playAgainBtn) {
+  const handler = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    restartGame();
+  };
+  playAgainBtn.addEventListener("click", handler);
+  playAgainBtn.addEventListener("touchstart", handler, { passive:false });
+}
 
 /**********************************************************
  * INIT
