@@ -51,6 +51,32 @@ if (playAgainBtn) {
   playAgainBtn.addEventListener("touchstart", handler, { passive: false });
 }
 
+modeSelect.addEventListener("change", () => {
+  if (modeSelect.value === "ai" || modeSelect.value === "two") {
+    // 🔥 force local mode
+    multiplayer = false;
+    roomCode = null;
+    playerSymbol = null;
+
+    if (roomRef) roomRef.off();
+    if (namesRef) namesRef.off();
+    if (chatRef) chatRef.off();
+
+    roomRef = namesRef = chatRef = null;
+
+    roomStatus.style.display = "none";
+    document.getElementById("exitRoomBtn").style.display = "none";
+
+    // reset board safely
+    board = Array(9).fill(" ");
+    currentPlayer = "X";
+    gameActive = true;
+    popup.style.display = "none";
+    renderBoard();
+  }
+});
+
+
 /**********************************************************
  * SCOREBOARD
  **********************************************************/
@@ -297,6 +323,7 @@ function listenChat() {
 function handleMove(index) {
   if (!gameActive || board[index] !== " ") return;
 
+  /* 🌐 MULTIPLAYER ONLY */
   if (multiplayer) {
     if (currentPlayer !== playerSymbol) return;
 
@@ -308,14 +335,46 @@ function handleMove(index) {
     return;
   }
 
+  /* 👤 LOCAL PLAYER */
   board[index] = currentPlayer;
   renderBoard();
 
   if (checkWinner(currentPlayer)) return showPopup(currentPlayer);
   if (isDraw()) return showPopup("draw");
 
+  /* 🤖 AI MODE */
+  if (modeSelect.value === "ai") {
+    gameActive = false;
+
+    setTimeout(() => {
+      const move = getAIMove();   // 👇 AI decision
+      board[move] = "O";
+      renderBoard();
+
+      if (checkWinner("O")) return showPopup("O");
+      if (isDraw()) return showPopup("draw");
+
+      currentPlayer = "X";
+      gameActive = true;
+    }, 400);
+
+    return;
+  }
+
+  /* 👥 LOCAL 2 PLAYER */
   currentPlayer = currentPlayer === "X" ? "O" : "X";
 }
+
+function getAIMove() {
+  // simple hard AI fallback
+  const empty = board
+    .map((v, i) => (v === " " ? i : null))
+    .filter(v => v !== null);
+
+  return empty[Math.floor(Math.random() * empty.length)];
+}
+
+
 
 /**********************************************************
  * PLAY AGAIN
